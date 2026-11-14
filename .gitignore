@@ -14,3 +14,6 @@ dist/
 
 # Canon memory (local data)
 facts.db*
+
+# Demo video build output
+demo/out/
