@@ -110,9 +110,32 @@ These are the scripts used to work out how Telem actually behaves, which shaped 
 | `routing_test.py` | which providers run per tier and query (no routing) | stdout |
 | `routing_test2.py` | `auto_routing` modes vs. the fixed fan-out, with reported cost | stdout |
 | `provider_catalog.py` | full provider catalog, grouped by category (free, no searches) | `providers.csv` |
-| `validate_router.py` | specialist access (A), web-engine overlap (B), sec_edgar + fetch + web end to end (C) | `validate_router_results.json` |
+| `validate_router.py` | specialist access (A), web-engine overlap (B), sec_edgar + fetch + web end to end (C), answer-provider correctness and citation quality (D) | `validate_router_results.json` |
 
-`python validate_router.py C [engine]` reruns only Test C (output: `validate_router_results_C.json`).
+`python validate_router.py C [engine]` reruns only Test C (output: `validate_router_results_C.json`), and
+`python validate_router.py D` reruns only Test D (output: `validate_router_results_D.json`).
+
+### Test D: answer providers
+Four questions were each sent to perplexity, linkup and tavily. Every URL a provider returned is labeled
+**PRIMARY** (sec.gov, nih.gov/PubMed, pypi.org, npmjs.com, docs.python.org, the official company or project site,
+peer-reviewed journals, FDA) or **SECONDARY** (news, blogs, forums, aggregators, video). Answers are checked
+against ground truth: the Tesla 8-K figure, the PyPI latest version (looked up live), and the known yes/yes for
+the other two.
+
+| question | provider | answer | correct? | % citations PRIMARY |
+|---|---|---|---|---|
+| Tesla revenue Q3 2026 | perplexity | (no answer) | n/a | 0% (0/5) |
+| | linkup | (no answer) | n/a | 0% (0/5) |
+| | tavily | ~$28.0B ($28.046B) | yes | 0% (0/5) |
+| Latest version of pytorch | perplexity | (no answer) | n/a | 80% (4/5) |
+| | linkup | (no answer) | n/a | 20% (1/5) |
+| | tavily | 2.15.0 | yes | 40% (2/5) |
+| Semaglutide and CV events in obesity | perplexity | (no answer) | n/a | 100% (5/5) |
+| | linkup | (no answer) | n/a | 0% (0/5) |
+| | tavily | Yes (SELECT trial) | yes | 20% (1/5) |
+| `datetime.utcnow` deprecated? | perplexity | (no answer) | n/a | 20% (1/5) |
+| | linkup | (no answer) | n/a | 0% (0/5) |
+| | tavily | Yes, since 3.12 | yes | 0% (0/5) |
 
 ### Findings
 - **Telem's built-in routing doesn't save calls.** The server accepts only `auto_routing="accuracy"`, which ranks
@@ -133,6 +156,14 @@ These are the scripts used to work out how Telem actually behaves, which shaped 
 - **The web is often stale on versions.** For torch, langchain and pydantic, Tavily's top results named old or
   wrong versions (for example LangChain 1.7.7, which is another package from the same repo). This is why the
   registry wins.
+- **Through Telem, only Tavily gives a direct answer.** Perplexity and Linkup return search results only: their raw
+  payload is just `results`, at every tier. Tavily answered all 4 questions correctly (Test D).
+- **Answers can be right while citing no primary source.** Tavily's sources were 0% primary on 3 of 4 questions,
+  including Tesla, where it cited CNBC and Yahoo rather than sec.gov. Its correct answers rest on secondary
+  reporting. That is why quorum fetches the official document instead of trusting an answer engine (Test D).
+- **Perplexity surfaces primary sources best.** It ranked 80–100% primary on pytorch and semaglutide (NEJM, PubMed,
+  PyPI, pytorch.org). No engine returned sec.gov for the Tesla question, so a finance specialist is still needed.
+  Linkup was almost entirely secondary (1 of 20 URLs) (Test D).
 - **Reported cost is a lower bound.** Only exa reports a dollar `usage.total`; the other providers report credits
   or SKU counts.
 

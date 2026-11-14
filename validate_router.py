@@ -1,5 +1,6 @@
 """Validate the specialist-router idea: specialist access/quality (A), web-engine
-independence (B), and the 2-call design end to end (C).
+independence (B), the 2-call design end to end (C), and answer-provider correctness and
+citation quality (D).
 
 Budget guard: aborts if any single call reports cost > $0.10 or the reported total > $1.
 Caveat: most providers report no dollar cost, so the guard only sees what is reported."""
@@ -9,6 +10,7 @@ import json
 import re
 import sys
 import time
+import urllib.request
 from itertools import combinations
 from urllib.parse import urlparse
 
@@ -288,9 +290,156 @@ async def test_c(c, web_engine):
     return out
 
 
+# ---------------------------------------------------------------- Test D
+# Answer providers: what they answer, whether it's right, and how much of what they cite is a primary source.
+# Probed 2026-11-14: through Telem only tavily fills `answer` (when the `answer` field is requested);
+# perplexity and linkup return search results only (raw payload = {id?, results}). The URLs a provider
+# returns are treated as its citations; providers with no answer are still scored on those URLs.
+ANSWER_PROVIDERS = ["perplexity", "linkup", "tavily"]
+ANSWER_FIELDS = ["url", "title", "summary", "answer", "usage"]
+TESLA_Q3_2026_MUSD = 28046  # "Total revenues" row of Tesla's Q3 2026 8-K exhibit 99.1 (Test C)
+
+# PRIMARY = the original publisher of the fact. Everything else (news, blogs, forums, issue trackers of
+# other projects, aggregators, video) is SECONDARY. Entries are host suffixes or host+path prefixes.
+PRIMARY_ALWAYS = ["sec.gov", "nih.gov", "pypi.org", "npmjs.com", "docs.python.org", "peps.python.org"]
+
+
+def _latest_pypi(pkg):
+    import ssl
+    try:  # python.org builds ship without a CA bundle; certifi comes in with requests/httpx
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        ctx = ssl.create_default_context()
+    with urllib.request.urlopen(f"https://pypi.org/pypi/{pkg}/json", timeout=20, context=ctx) as r:
+        return json.load(r)["info"]["version"]
+
+
+def _money_musd(text):
+    """Dollar amounts in text, in $ millions, in order of appearance."""
+    out = []
+    for m in re.finditer(r"\$\s?(\d[\d,]*(?:\.\d+)?)\s*(billion|bn|b|million|mn|m)\b", text, re.I):
+        v = float(m.group(1).replace(",", ""))
+        out.append(v * 1000 if m.group(2).lower().startswith("b") else v)
+    return out
+
+
+def check_tesla(ans, _):
+    vals = _money_musd(ans)
+    if not vals:
+        return False, "no dollar figure"
+    v = vals[0]  # the headline figure; later ones are often estimates or prior periods
+    return abs(v - TESLA_Q3_2026_MUSD) / TESLA_Q3_2026_MUSD < 0.002, f"${v / 1000:.2f}B vs ${TESLA_Q3_2026_MUSD / 1000:.2f}B"
+
+
+def check_pytorch(ans, latest):
+    m = re.search(r"\b(\d+\.\d+(?:\.\d+)?)\b", ans)
+    if not m:
+        return False, "no version"
+    v, want = m.group(1), latest
+    return v in (want, want.removesuffix(".0")), f"{v} vs PyPI {want}"
+
+
+def check_semaglutide(ans, _):
+    a = ans.lower()
+    neg = re.search(r"\b(no|not|does not|doesn't|did not)\b[^.]{0,40}\b(reduc|lower|benefit)", a)
+    pos = re.search(r"\b(yes|reduc\w*|lower\w*)\b", a)
+    return bool(pos and not neg), "expects yes (SELECT trial: ~20% fewer MACE)"
+
+
+def check_utcnow(ans, _):
+    a = ans.lower()
+    return ("deprecat" in a and "3.12" in a and "not deprecated" not in a), "expects yes, since 3.12"
+
+
+ANSWER_QUESTIONS = [  # (question, extra primary sources for this question, checker, label for expected primary)
+    ("What was Tesla's revenue in Q3 2026?", ["tesla.com"], check_tesla, "sec.gov"),
+    ("Latest version of pytorch", ["pytorch.org", "github.com/pytorch/"], check_pytorch, "pypi.org"),
+    # peer-reviewed journals publish the trial itself; the regulator's approval notice is also first-hand
+    ("Does semaglutide reduce cardiovascular events in obesity?",
+     ["nejm.org", "thelancet.com", "jamanetwork.com", "jacc.org", "ahajournals.org", "fda.gov"],
+     check_semaglutide, "pubmed/NEJM"),
+    ("Is datetime.utcnow deprecated in Python?", [], check_utcnow, "docs.python.org"),
+]
+
+
+def label_url(url, extra):
+    p = urlparse(url or "")
+    host = (p.hostname or "").removeprefix("www.")
+    hp = host + p.path
+    for d in PRIMARY_ALWAYS + extra:
+        if "/" in d:
+            if hp.startswith(d):
+                return "PRIMARY"
+        elif host == d or host.endswith("." + d):
+            return "PRIMARY"
+    return "SECONDARY"
+
+
+async def test_d(c):
+    print("=" * 100 + f"\nTEST D: answer providers ({', '.join(ANSWER_PROVIDERS)}): correctness and citation quality\n"
+          + "=" * 100)
+    try:
+        latest_torch = _latest_pypi("torch")
+    except Exception as e:  # noqa: BLE001 - ground truth unavailable; the row is still printed
+        latest_torch = None
+        print(f"could not read PyPI for torch: {e}")
+    print(f"ground truth: Tesla Q3 2026 revenue ${TESLA_Q3_2026_MUSD:,}M (8-K) | torch latest on PyPI: {latest_torch}")
+
+    rows = []
+    for q, extra, check, expected_primary in ANSWER_QUESTIONS:
+        r, err, wall = await call(c, q, ANSWER_PROVIDERS, 5, fields=ANSWER_FIELDS)
+        print(f"\n--- {q}   (expected primary: {expected_primary}; wall {wall} ms)")
+        runs = {x.provider: x for x in (r.by_provider if r else [])}
+        for prov in ANSWER_PROVIDERS:
+            run = runs.get(prov)
+            if err or not run or run.status != "succeeded":
+                why = err or (run and (run.error or run.status)) or "no run"
+                print(f"  {prov:11} FAILED: {str(why)[:150]}")
+                rows.append({"question": q, "provider": prov, "error": str(why)})
+                continue
+            ans = (run.answer or "").strip()
+            cites = [{"url": x.url, "label": label_url(x.url, extra)} for x in run.results]
+            n_pri = sum(1 for x in cites if x["label"] == "PRIMARY")
+            pct = 100 * n_pri / len(cites) if cites else None
+            if not ans:
+                correct, why = None, "no answer returned"
+            elif check is check_pytorch and not latest_torch:
+                correct, why = None, "PyPI unavailable"
+            else:
+                correct, why = check(ans, latest_torch)
+            print(f"  {prov:11} answer: {ans[:160] or '(none)'}")
+            print(f"  {'':11} correct: {'n/a' if correct is None else 'YES' if correct else 'NO'} ({why}) | "
+                  f"primary {n_pri}/{len(cites)}")
+            for x in cites:
+                print(f"  {'':11}   {x['label']:9} {x['url'][:110]}")
+            rows.append({"question": q, "provider": prov, "answer": ans or None, "correct": correct,
+                         "check": why, "citations": cites, "primary_pct": pct,
+                         "expected_primary_cited": n_pri > 0, "usage": run.usage})
+
+    # Table: question | provider | answer | correct? | % of citations PRIMARY
+    print(f"\n{'question':44} | {'provider':10} | {'answer':52} | {'correct?':8} | % primary")
+    print("-" * 134)
+    for x in rows:
+        if "error" in x:
+            print(f"{x['question'][:44]:44} | {x['provider']:10} | {'ERROR: ' + x['error'][:45]:52} | {'':8} |")
+            continue
+        ans = (x["answer"] or "(no answer)").replace("\n", " ")[:52]
+        ok = "n/a" if x["correct"] is None else "yes" if x["correct"] else "NO"
+        pct = "n/a" if x["primary_pct"] is None else f"{x['primary_pct']:.0f}%"
+        print(f"{x['question'][:44]:44} | {x['provider']:10} | {ans:52} | {ok:8} | {pct:>5} ({sum(1 for y in x['citations'] if y['label'] == 'PRIMARY')}/{len(x['citations'])})")
+    return rows
+
+
 async def main():
     c = AsyncTelem()
     results = {}
+    if len(sys.argv) > 1 and sys.argv[1] == "D":  # rerun only Test D: python validate_router.py D
+        results["D"] = await test_d(c)
+        print(f"\n[budget] reported spend ${spent:.4f}; provider runs with no cost reported: {unreported_calls}")
+        with open("validate_router_results_D.json", "w") as f:
+            json.dump({"results": results, "log": log, "spent": spent}, f, default=str, indent=1)
+        return
     if len(sys.argv) > 1 and sys.argv[1] == "C":  # rerun only Test C: python validate_router.py C [engine]
         results["C"] = await test_c(c, sys.argv[2] if len(sys.argv) > 2 else "brave")
         print(f"\n[budget] reported spend ${spent:.4f}; provider runs with no cost reported: {unreported_calls}")
@@ -310,6 +459,7 @@ async def main():
         else:
             web = "brave"
         results["C"] = await test_c(c, web)
+        results["D"] = await test_d(c)
     except BudgetExceeded as e:
         print(f"\n!!! BUDGET STOP: {e}")
     print(f"\n[budget] FINAL reported spend ${spent:.4f}; provider runs with no cost reported: {unreported_calls}")

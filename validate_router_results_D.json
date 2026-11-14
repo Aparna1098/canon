@@ -1,0 +1,549 @@
+{
+ "results": {
+  "D": [
+   {
+    "question": "What was Tesla's revenue in Q3 2026?",
+    "provider": "perplexity",
+    "answer": null,
+    "correct": null,
+    "check": "no answer returned",
+    "citations": [
+     {
+      "url": "https://www.theglobeandmail.com/investing/markets/stocks/TSLA/pressreleases/8504275/tsla-q3-earnings-call-highlights-autonomy-and-expansion-plans/",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://www.theglobeandmail.com/investing/markets/stocks/GPC/pressreleases/8323871/tsla-q3-earnings-beat-on-auto-margin-gains-26-capex-view-cut/",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://www.theglobeandmail.com/investing/markets/stocks/TSLA/pressreleases/8324201/tsla-q3-deep-dive-autonomy-adoption-and-margin-dynamics-shape-outlook/",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://www.theglobeandmail.com/investing/markets/stocks/TSLA/pressreleases/8294450/tesla-nasdaqtsla-reports-q3-2026-revenue-in-line-with-expectations/",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://www.theverge.com/transportation/1015790/tesla-q3-2026-earnings-revenue-profit-roadster-spacex-merger",
+      "label": "SECONDARY"
+     }
+    ],
+    "primary_pct": 0.0,
+    "expected_primary_cited": false,
+    "usage": null
+   },
+   {
+    "question": "What was Tesla's revenue in Q3 2026?",
+    "provider": "linkup",
+    "answer": null,
+    "correct": null,
+    "check": "no answer returned",
+    "citations": [
+     {
+      "url": "https://pogwire.com/tech/tesla-q3-2026-earnings-date-time",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://techaiwire.com/articles/tesla-q3-2026-earnings-profit-falls-cybercab-sales-2026/",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://investor.wedbush.com/wedbush/article/stockstory-2026-10-21-tesla-nasdaqtsla-reports-q3-2026-revenue-in-line-with-expectations",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "http://business.am-news.com/am-news/article/stockstory-2026-10-21-tesla-nasdaqtsla-reports-q3-2026-revenue-in-line-with-expectations",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://driveteslacanada.ca/news/tesla-q3-2026-earnings-results/",
+      "label": "SECONDARY"
+     }
+    ],
+    "primary_pct": 0.0,
+    "expected_primary_cited": false,
+    "usage": null
+   },
+   {
+    "question": "What was Tesla's revenue in Q3 2026?",
+    "provider": "tavily",
+    "answer": "Tesla reported revenue of roughly $28.0\u202fbillion in Q3\u202f2026, with the figure given as $28.046\u202fbillion in the earnings data.",
+    "correct": true,
+    "check": "$28.00B vs $28.05B",
+    "citations": [
+     {
+      "url": "https://vestedfinance.com/blog/us-stocks/tesla-q3-earnings-2026",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://arstechnica.com/cars/2026/10/tesla-profits-drop-43-in-q3",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://www.teslarati.com/tesla-tsla-q3-2026-earnings-results",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://finance.yahoo.com/markets/stocks/articles/tesla-tsla-q3-earnings-reveal-141249001.html",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://www.cnbc.com/2026/10/21/tesla-tsla-q3-2026-earnings-report.html",
+      "label": "SECONDARY"
+     }
+    ],
+    "primary_pct": 0.0,
+    "expected_primary_cited": false,
+    "usage": {
+     "credits": 1
+    }
+   },
+   {
+    "question": "Latest version of pytorch",
+    "provider": "perplexity",
+    "answer": null,
+    "correct": null,
+    "check": "no answer returned",
+    "citations": [
+     {
+      "url": "https://pytorch.org/",
+      "label": "PRIMARY"
+     },
+     {
+      "url": "https://github.com/pytorch/pytorch/releases",
+      "label": "PRIMARY"
+     },
+     {
+      "url": "https://pytorch.org/get-started/locally/",
+      "label": "PRIMARY"
+     },
+     {
+      "url": "https://pypi.org/project/torch/2.15.0/",
+      "label": "PRIMARY"
+     },
+     {
+      "url": "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch",
+      "label": "SECONDARY"
+     }
+    ],
+    "primary_pct": 80.0,
+    "expected_primary_cited": true,
+    "usage": null
+   },
+   {
+    "question": "Latest version of pytorch",
+    "provider": "linkup",
+    "answer": null,
+    "correct": null,
+    "check": "no answer returned",
+    "citations": [
+     {
+      "url": "https://github.com/pytorch/pytorch/wiki/PyTorch-Versions",
+      "label": "PRIMARY"
+     },
+     {
+      "url": "https://reason.town/pytorch-new-version/",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://docker.aityp.com/image/docker.io/pytorch/pytorch:latest",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://reason.town/pytorch-supported-cuda-versions/",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://thelinuxcode.com/upgrade-pytorch/",
+      "label": "SECONDARY"
+     }
+    ],
+    "primary_pct": 20.0,
+    "expected_primary_cited": true,
+    "usage": null
+   },
+   {
+    "question": "Latest version of pytorch",
+    "provider": "tavily",
+    "answer": "The latest stable release of PyTorch is version\u202f2.15.0.",
+    "correct": true,
+    "check": "2.15.0 vs PyPI 2.15.0",
+    "citations": [
+     {
+      "url": "https://thelinuxcode.com/upgrade-pytorch",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://www.educba.com/pytorch-versions",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://stackoverflow.com/questions/75417119/how-to-find-what-is-the-latest-version-of-python-that-pytorch",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://pytorch.org",
+      "label": "PRIMARY"
+     },
+     {
+      "url": "https://github.com/pytorch/pytorch/releases",
+      "label": "PRIMARY"
+     }
+    ],
+    "primary_pct": 40.0,
+    "expected_primary_cited": true,
+    "usage": {
+     "credits": 1
+    }
+   },
+   {
+    "question": "Does semaglutide reduce cardiovascular events in obesity?",
+    "provider": "perplexity",
+    "answer": null,
+    "correct": null,
+    "check": "no answer returned",
+    "citations": [
+     {
+      "url": "https://www.nejm.org/doi/10.1056/NEJMoa2307563",
+      "label": "PRIMARY"
+     },
+     {
+      "url": "https://www.fda.gov/news-events/press-announcements/fda-approves-first-treatment-reduce-risk-serious-heart-problems-specifically-adults-obesity-or",
+      "label": "PRIMARY"
+     },
+     {
+      "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11439431/",
+      "label": "PRIMARY"
+     },
+     {
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42969445/",
+      "label": "PRIMARY"
+     },
+     {
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11239134/",
+      "label": "PRIMARY"
+     }
+    ],
+    "primary_pct": 100.0,
+    "expected_primary_cited": true,
+    "usage": null
+   },
+   {
+    "question": "Does semaglutide reduce cardiovascular events in obesity?",
+    "provider": "linkup",
+    "answer": null,
+    "correct": null,
+    "check": "no answer returned",
+    "citations": [
+     {
+      "url": "https://www.mkpeptide.com/news-media/semaglutide-reduces-cardiovascular-events-by-20-in-overweight-or-obese-adults-who-dont-have-diabetes-trial/",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://www.brighamhealthonamission.org/2024/02/29/study-shows-semaglutide-reduces-cardiovascular-events-in-people-with-overweight-or-obesity-but-not-diabetes/",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://www.urbanhealthtoday.com/post/semaglutide-reduces-major-cardiovascular-events-in-overweight-and-obese-adults",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://qsstudy.com/in-certain-adults-semaglutide-reduced-cardiovascular-events-by-20/",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://www.healio.com/news/cardiology/20231111/semaglutide-cuts-cardiovascular-risk-by-20-in-people-with-heart-disease-obesity-select",
+      "label": "SECONDARY"
+     }
+    ],
+    "primary_pct": 0.0,
+    "expected_primary_cited": false,
+    "usage": null
+   },
+   {
+    "question": "Does semaglutide reduce cardiovascular events in obesity?",
+    "provider": "tavily",
+    "answer": "Yes. In people who are overweight or have obesity and have established cardiovascular disease but no diabetes, once\u2011weekly subcutaneous semaglutide lowered the risk of major adverse cardiovascular events by roughly 20\u202f%\u2014for example, the SELECT trial reported a hazard ratio of about 0.80 (95\u202f%\u202fCI\u202f0.72\u20110.90) and a 20\u202f% relative risk reduction in MACE, with consistent benefits seen across subgroups such as those with a history of coronary\u2011artery bypass grafting (HR\u202f0.72) and those with heart failure.",
+    "correct": true,
+    "check": "expects yes (SELECT trial: ~20% fewer MACE)",
+    "citations": [
+     {
+      "url": "https://www.acc.org/latest-in-cardiology/clinical-trials/2023/11/09/15/04/select",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://www.2minutemedicine.com/semaglutide-reduces-cardiovascular-events-in-patients-with-atherosclerotic-disease-and-obesity",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://pcmedproject.com/evidence-matters/rct-results-does-semaglutide-reduce-cardiovascular-events-for-patients-with-overweight-obesity-without-diabetes",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://www.jacc.org/doi/10.1016/j.jacc.2024.11.008",
+      "label": "PRIMARY"
+     },
+     {
+      "url": "https://www.yalemedicine.org/news/why-your-cardiologist-may-prescribe-semaglutide-wegovy",
+      "label": "SECONDARY"
+     }
+    ],
+    "primary_pct": 20.0,
+    "expected_primary_cited": true,
+    "usage": {
+     "credits": 1
+    }
+   },
+   {
+    "question": "Is datetime.utcnow deprecated in Python?",
+    "provider": "perplexity",
+    "answer": null,
+    "correct": null,
+    "check": "no answer returned",
+    "citations": [
+     {
+      "url": "https://simonwillison.net/2023/Nov/18/utcnow-is-now-deprecated/",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://docs.python.org/3/deprecations/pending-removal-in-future.html",
+      "label": "PRIMARY"
+     },
+     {
+      "url": "https://best.openssf.org/Secure-Coding-Guide-for-Python/08_coding_standards/pyscg-0053/",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://docs.moderne.io/user-documentation/recipes/recipe-catalog/python/migrate/replacedatetimeutcnow/",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://github.com/saltstack/salt/issues/65604",
+      "label": "SECONDARY"
+     }
+    ],
+    "primary_pct": 20.0,
+    "expected_primary_cited": true,
+    "usage": null
+   },
+   {
+    "question": "Is datetime.utcnow deprecated in Python?",
+    "provider": "linkup",
+    "answer": null,
+    "correct": null,
+    "check": "no answer returned",
+    "citations": [
+     {
+      "url": "https://dev.to/ntoledo319/deprecationwarning-datetimedatetimeutcnow-is-deprecated-fixing-the-python-312-warning-in-5ggc",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://blog.miguelgrinberg.com/post/it-s-time-for-a-change-datetime-utcnow-is-now-deprecated/page/0",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://aaronoellis.com/articles/python-datetime-utcnow-considered-harmful",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://dev.to/renev3408/python-312-warns-that-datetimeutcnow-is-deprecated-here-is-what-to-use-instead-303k",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://andreas.scherbaum.la/post/2024-08-05_deprecationwarning-datetime-datetime-utcnow-is-deprecated-and-scheduled-for-removal-in-a-future-version-use-timezone-aware-objects-to-represent-datetimes-in-utc-datetime-datetime-now-datetime-utc/",
+      "label": "SECONDARY"
+     }
+    ],
+    "primary_pct": 0.0,
+    "expected_primary_cited": false,
+    "usage": null
+   },
+   {
+    "question": "Is datetime.utcnow deprecated in Python?",
+    "provider": "tavily",
+    "answer": "Yes. In Python\u202f3.12 the `datetime.utcnow()` method is deprecated and will be removed in a future release; the documentation recommends using `datetime.now(datetime.UTC)` (or `datetime.now(timezone.utc)` in earlier versions) instead.",
+    "correct": true,
+    "check": "expects yes, since 3.12",
+    "citations": [
+     {
+      "url": "https://www.andreagrandi.it/posts/python-now-time-to-migrate-from-utcnow",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://github.com/dbt-labs/dbt/issues/9791",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://blog.miguelgrinberg.com/post/it-s-time-for-a-change-datetime-utcnow-is-now-deprecated",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://aaronoellis.com/articles/python-datetime-utcnow-considered-harmful",
+      "label": "SECONDARY"
+     },
+     {
+      "url": "https://discuss.python.org/t/why-is-datetime-utcnow-deprecated/86868",
+      "label": "SECONDARY"
+     }
+    ],
+    "primary_pct": 0.0,
+    "expected_primary_cited": false,
+    "usage": {
+     "credits": 1
+    }
+   }
+  ]
+ },
+ "log": [
+  {
+   "query": "What was Tesla's revenue in Q3 2026?",
+   "providers": [
+    "perplexity",
+    "linkup",
+    "tavily"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "perplexity",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 181,
+     "n": 5
+    },
+    {
+     "provider": "linkup",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 651,
+     "n": 5
+    },
+    {
+     "provider": "tavily",
+     "status": "succeeded",
+     "usage": {
+      "credits": 1
+     },
+     "error": null,
+     "latency_ms": 556,
+     "n": 5
+    }
+   ]
+  },
+  {
+   "query": "Latest version of pytorch",
+   "providers": [
+    "perplexity",
+    "linkup",
+    "tavily"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "perplexity",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 203,
+     "n": 5
+    },
+    {
+     "provider": "linkup",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 578,
+     "n": 5
+    },
+    {
+     "provider": "tavily",
+     "status": "succeeded",
+     "usage": {
+      "credits": 1
+     },
+     "error": null,
+     "latency_ms": 32,
+     "n": 5
+    }
+   ]
+  },
+  {
+   "query": "Does semaglutide reduce cardiovascular events in obesity?",
+   "providers": [
+    "perplexity",
+    "linkup",
+    "tavily"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "perplexity",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 205,
+     "n": 5
+    },
+    {
+     "provider": "linkup",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 633,
+     "n": 5
+    },
+    {
+     "provider": "tavily",
+     "status": "succeeded",
+     "usage": {
+      "credits": 1
+     },
+     "error": null,
+     "latency_ms": 43,
+     "n": 5
+    }
+   ]
+  },
+  {
+   "query": "Is datetime.utcnow deprecated in Python?",
+   "providers": [
+    "perplexity",
+    "linkup",
+    "tavily"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "perplexity",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 171,
+     "n": 5
+    },
+    {
+     "provider": "linkup",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 548,
+     "n": 5
+    },
+    {
+     "provider": "tavily",
+     "status": "succeeded",
+     "usage": {
+      "credits": 1
+     },
+     "error": null,
+     "latency_ms": 31,
+     "n": 5
+    }
+   ]
+  }
+ ],
+ "spent": 0.0
+}
