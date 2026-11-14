@@ -40,15 +40,15 @@ def expected_patterns(q):
     if "registry" in q:
         v = q["truth"]
         short = v[:-2] if v.endswith(".0") else None
-        pats = [rf"(?<![\d.]){re.escape(v)}(?![\d.])"]
+        pats = [rf"(?<![\d.]){re.escape(v)}(?!\.?\d)"]  # "16.4.6." ends a sentence; "16.4.60" is different
         if short:
-            pats.append(rf"(?<![\d.]){re.escape(short)}(?![\d.])")
+            pats.append(rf"(?<![\d.]){re.escape(short)}(?!\.?\d)")
         return pats
     return q["expect"]
 
 
 def correct(answer, q):
-    a = (answer or "").lower()
+    a = re.sub(r"[\u202f\u00a0\u2009]", " ", (answer or "").lower())
     if not a or a == "no answer found":
         return False
     if q["category"] == "medical" and re.search(r"\b(no|not|does not|doesn't)\b[^.]{0,30}\b(reduc|lower)", a):
@@ -115,6 +115,10 @@ async def main():
         print(f"[2] {q['id']:2} mem={c['from_memory']} canon={c['answer'][:60]!r} "
               f"({'ok' if correct(c['answer'], q) else 'WRONG'})", flush=True)
 
+    report(rows)
+
+
+def report(rows):
     modes = [("web", "Web-only (tavily)"), ("default", "Telem default (all 7)"),
              ("canon1", "Canon, first pass"), ("canon2", "Canon, second pass (reworded)")]
     S = {k: summarize(rows, k, [r["q"] for r in rows]) for k, _ in modes}
@@ -148,4 +152,8 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import sys
+    if "--rescore" in sys.argv:  # rebuild eval_results.md from eval_results.json without new calls
+        report(json.load(open(os.path.join(HERE, "eval_results.json")))["rows"])
+    else:
+        asyncio.run(main())

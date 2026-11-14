@@ -143,13 +143,6 @@ def stats():
     return {"facts_stored": r["n"], "memory_hits": r["hits"], "searches_saved": r["calls"], "tokens_saved": r["tokens"]}
 
 
-def hot_sources(min_hits=3):
-    with _lock, _db() as con:
-        return [dict(r) for r in con.execute(
-            "SELECT DISTINCT source_url, category FROM facts WHERE hit_count >= ? AND source_url IS NOT NULL",
-            (min_hits,))]
-
-
 def set_monitor(fact_id, monitor_id):
     with _lock, _db() as con:
         con.execute("UPDATE facts SET monitor_id = ? WHERE id = ?", (monitor_id, fact_id))

@@ -408,25 +408,6 @@ async def npm_latest(pkg, tr):
             "quote": qm.group(0) if qm else f'"latest":"{ver}"', "doc": t}
 
 
-def _vkey(v):
-    """Sort key for version strings; pre-releases sort below their release."""
-    parts = re.findall(r"\d+", _v(v).split("-")[0].split("a")[0].split("b")[0].split("rc")[0])
-    pre = bool(re.search(r"(a|b|rc|alpha|beta|dev|canary|-)", _v(v)))
-    return tuple(int(p) for p in parts[:4]) + ((0,) if pre else (1,))
-
-
-def same_version(a, b):
-    """'2.15' == '2.15.0' == 'v2.15.0'; a pre-release never equals its final release."""
-    def parts(v):  # numeric parts without trailing zeros, plus the release/pre-release flag
-        *nums, final = _vkey(v)
-        while nums and nums[-1] == 0:
-            nums.pop()
-        return nums, final
-
-    (na, fa), (nb, fb) = parts(a), parts(b)
-    return bool(_vkey(a)[:-1]) and na == nb and fa == fb
-
-
 async def github_release(repo, pkg, ver, tr):
     from urllib.parse import quote
     for tag in (f"v{ver}", ver, f"{pkg}=={ver}", f"{pkg}@{ver}"):
