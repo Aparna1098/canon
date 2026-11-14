@@ -6,8 +6,9 @@ against the open web. It is built on the [Telem](https://telem.ai) multi-provide
 By default Telem fans a query out to 7 providers. quorum does three things differently:
 
 1. **Classify the question.** It labels each question as `finance`, `medical`, `local`, `code` or `general`.
-2. **Use the authoritative source.** Finance questions go to SEC EDGAR, medical ones to PubMed and local ones to
-   Google Maps. quorum fetches the matching document and pulls the fact out of it.
+2. **Use the authoritative source.** Finance questions go to SEC EDGAR, medical ones to PubMed, local ones to
+   Google Maps, and code questions to the PyPI or npm registry (plus GitHub releases). quorum fetches the matching
+   document and pulls the fact out of it.
 3. **Verify.** In parallel it runs a web check with Tavily. When the official source and the web disagree, the
    official source wins and the web value is shown struck through. General questions are settled by a vote across
    several search engines.
@@ -18,8 +19,10 @@ Each answer reports how many provider calls it made, compared with Telem's defau
 question ─▶ classifier.py ─┬─ finance │ medical │ local ─▶ keyword query ─▶ specialist search ─▶ fetch doc ─▶ extract fact ─┐
                            │                       └──────▶ tavily search (original question) ─▶ extract claim ──────────────┴─▶ reconcile
                            │                                                                                                   (official wins)
-                           └─ general │ code ─▶ exa + tavily ─▶ extract & cluster claims ─▶ agree? ── yes ─▶ answer
-                                                                                              └─ no ─▶ + brave + parallel ─▶ engine quorum
+                           ├─ code ─▶ package name ─▶ PyPI JSON / npm dist-tags (+ GitHub release) ─┬─▶ compare versions
+                           │             └──────────▶ tavily search ─▶ extract version ─────────────┘   (official wins)
+                           └─ general ─▶ exa + tavily ─▶ extract & cluster claims ─▶ agree? ── yes ─▶ answer
+                                                                                       └─ no ─▶ + brave + parallel ─▶ engine quorum
 ```
 
 ## Setup
@@ -39,8 +42,9 @@ cp .env.example .env   # add TELEM_API_KEY and ANTHROPIC_API_KEY (TAVILY_API_KEY
 .venv/bin/python classifier.py "urgent care clinics in Raleigh"        # classify one query
 ```
 
-The UI shows the category, the classifier's method and confidence, the route taken, provider and LLM call counts,
-and latency. It lists the sources with badges (**Official**, **Agreeing engines**, **Web**), puts a line through
+While a question runs, the UI shows each step live ("Classifying… Searching SEC… Fetching filing… Cross-checking
+with Tavily…"). Afterwards it shows the category, the classifier's method and confidence, the route taken, provider
+and LLM call counts, and latency. It lists the sources with badges (**Official**, **Agreeing engines**, **Web**), puts a line through
 values that lost, and has a full call log.
 
 | env var | default | purpose |
@@ -61,9 +65,15 @@ The classifier tries three methods in order, stopping at the first that gives a 
 ### Specialist path (`quorum.py`)
 | label | specialist | notes |
 |---|---|---|
-| finance | `sec_edgar` | needs both a company and a period, otherwise falls back to general |
+| finance | `sec_edgar` | needs a company. With no period, it assumes the latest fiscal year and uses the newest 10-K |
 | medical | `ncbi_pubmed` | |
 | local | `fetchlayer_google_maps` | |
+
+**Finance without a period.** `sec_edgar` ranks by relevance, so `Costco 10-K` returns filings from the early
+2000s. Telem's `published_after` doesn't help, because it only filters results after the search. quorum queries
+`<Company> 10-K <year>` (then the previous year), takes the newest primary 10-K, and rejects anything over 18 months
+old. A 10-K runs to hundreds of pages, so quorum fetches up to 1.5M characters and passes the extractor only the
+passages around the metric named in the question (revenue, net income and so on).
 
 An LLM turns the question into a keyword query. quorum takes the specialist result that names the entity, fetches
 the full document with Telem `fetch()` and extracts the value along with a verbatim supporting quote. The Tavily
@@ -71,11 +81,24 @@ check runs at the same time, and a reconcile step decides whether the two values
 differences count as agreement). If the specialist returns nothing or the document doesn't contain the answer,
 quorum falls back to the general path.
 
+### Code path
+1. **Find the package.** quorum looks for an install command (`pip install x`, `npm i x`), then a list of known
+   names (`pytorch` → `torch`, `next.js` → `next`). It asks Claude Haiku only if neither matches.
+2. **Read the registry with Telem `fetch()`.**
+   - PyPI: `/pypi/<pkg>/json` gives the version and `/pypi/<pkg>/<version>/json` the upload date.
+   - npm: `/-/package/<pkg>/dist-tags` gives the version. npm has no small endpoint with the publish time, so the
+     date comes from the GitHub release.
+3. **Read the GitHub release** when the question asks about breaking changes or what's new, and summarise it.
+4. **Cross-check with Tavily.** The web value is the version most Tavily results cite. If it differs from the
+   registry, the registry wins.
+
 ### General path
 Exa and Tavily run first because Test B found they overlap least (about 7% of URLs). quorum extracts one claim per
 source and groups claims that are the same value (numbers within 0.5%). Each engine votes for the group holding most
 of its claims. If the two engines disagree, or either finds nothing, quorum adds Brave and Parallel and the majority
-of engines decides. `code` questions use this path too, because Telem has no code specialist.
+of engines decides.
+
+On every path, a provider that returns no results is retried once before quorum gives up on it.
 
 ## Experiments
 
@@ -104,6 +127,12 @@ These are the scripts used to work out how Telem actually behaves, which shaped 
   not figures, so quorum fetches the document itself. Tavily alone returned the correct $28.05B, but also the
   analyst estimate ($28.17B) and an unrelated older figure. That mix is why the web value is checked against the
   official one rather than trusted (Test C).
+- **Telem `fetch()` can serve stale copies.** Fetching npm's `/next/latest` returned 16.3.4 (from 2026-08-31),
+  even with `no_cache=True`, when the real latest was 16.4.6 (2026-11-09). npm's `dist-tags` endpoint came back
+  current, and so did PyPI for torch, langchain and pydantic.
+- **The web is often stale on versions.** For torch, langchain and pydantic, Tavily's top results named old or
+  wrong versions (for example LangChain 1.7.7, which is another package from the same repo). This is why the
+  registry wins.
 - **Reported cost is a lower bound.** Only exa reports a dollar `usage.total`; the other providers report credits
   or SKU counts.
 
