@@ -46,7 +46,7 @@ class Verdict(BaseModel):
 @dataclass
 class Tracker:
     events: list = field(default_factory=list)
-    tokens_in: int = 0  # LLM input tokens: the text the pipeline had to read
+    tokens_in: int = 0  # ~tokens of source text read from Telem (search results + fetched documents)
 
     def add(self, kind, provider, ms, ok=True, note=""):
         self.events.append({"kind": kind, "provider": provider, "ms": ms, "ok": ok, "note": note})
@@ -92,7 +92,6 @@ async def ask(schema, system, user, tr: Tracker, label):
     resp = await llm().messages.parse(model=MODEL, max_tokens=4000, system=system,
                                       messages=[{"role": "user", "content": user}], output_format=schema)
     tr.add("llm", f"{MODEL}:{label}", _ms(t0))
-    tr.tokens_in += resp.usage.input_tokens
     if resp.stop_reason == "refusal":
         raise RuntimeError(f"LLM declined the {label} step")
     return resp.parsed_output
@@ -131,3 +130,58 @@ async def reconcile(question, official, web, tr):
     user = (f"Question: {question}\nOfficial: {official.value} ({official.normalized})\n"
             f"Web: {web.value} ({web.normalized})")
     return await ask(Verdict, system, user, tr, "reconcile")
+
+
+# ---------------------------------------------------------------- quote verification
+def _norm(s):
+    """Lowercase, unify quotes/dashes, drop thousands separators and markdown, collapse whitespace."""
+    s = (s or "").lower()
+    s = s.translate(str.maketrans({"\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"', "\u2013": "-",
+                                   "\u2014": "-", "\u202f": " ", "\u00a0": " "}))
+    s = re.sub(r"(?<=\d),(?=\d{3}\b)", "", s)          # 28,046 -> 28046
+    s = re.sub(r"[*_`#|>]+", " ", s)                    # markdown / table syntax
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def quote_in(quote, text):
+    """True if the quote appears in the document text after normalization. Long quotes may be
+    stitched from a table row, so they pass when every 6-word window of them is present."""
+    q, t = _norm(quote), _norm(text)
+    if not q or len(q) < 4:
+        return False
+    if q in t:
+        return True
+    w = q.split()
+    if len(w) < 8:
+        return False
+    windows = [" ".join(w[i:i + 6]) for i in range(0, len(w) - 5, 3)]
+    return sum(x in t for x in windows) / len(windows) >= 0.8
+
+
+async def extract_verified(question, doc, tr):
+    """extract_fact, then check its quote is really in the document; retry once with a stricter prompt.
+    Returns (fact, verified)."""
+    fact = await extract_fact(question, doc, tr)
+    if not fact.found:
+        return fact, False
+    if quote_in(fact.quote, doc["text"]):
+        return fact, True
+    tr.add("verify", "quote-not-found", 0, ok=False, note=fact.quote[:120])
+    fact = await extract_fact(question + "\n(Copy the quote character for character from the document; "
+                              "do not paraphrase or join lines.)", doc, tr)
+    ok = fact.found and quote_in(fact.quote, doc["text"])
+    tr.add("verify", "quote-retry", 0, ok=ok)
+    return fact, ok
+
+
+_YEAR = re.compile(r"^\D*((?:19|20)\d\d)\D*$")
+_DATE = re.compile(r"((?:19|20)\d\d)-\d\d(?:-\d\d)?")
+
+
+def less_precise(a, b):
+    """'1998' vs '1998-11-20': consistent, one less precise. Returns True in that case."""
+    for x, y in ((a, b), (b, a)):
+        my, md = _YEAR.match((x or "").strip()), _DATE.search(y or "")
+        if my and md and my.group(1) == md.group(1) and not _DATE.search(x or ""):
+            return True
+    return False

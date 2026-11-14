@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 from telem import AsyncTelem, TelemError
 
 from .verify import (DOC_CHARS, Fact, Params, Tracker, _ms, _text, ask, extract_claims, extract_fact,
-                     reconcile)
+                     extract_verified, less_precise, quote_in, reconcile)
 
 DEFAULT_FANOUT = 7  # providers Telem runs when providers_include is omitted
 
@@ -116,6 +116,7 @@ async def _search_once(query, providers, num_results, tr, attempt):
             "date": str(res.publish_date) if res.publish_date else None,
             "text": " ".join(filter(None, [_text(res.summary), _text(res.excerpt)])),
         } for res in run.results]
+        tr.tokens_in += sum(len(x["text"]) + len(x["title"]) for x in out[run.provider]) // 4
     return out
 
 
@@ -137,6 +138,7 @@ async def fetch(url, tr, fmt="markdown", max_chars=DOC_CHARS, no_cache=False):
         tr.add("fetch", "fetch", _ms(t0), ok=False, note=str(e)[:120])
         return None
     x = r.results[0]
+    tr.tokens_in += len(x.content or "") // 4
     tr.add("fetch", f"fetch:{x.provider}", x.latency_ms or _ms(t0), ok=x.status == "succeeded",
            note=_text(x.error)[:120])
     return x.content if x.status == "succeeded" and x.content else None
@@ -149,7 +151,7 @@ _NUM = re.compile(r"-?\d+(?:\.\d+)?")
 def _same(a, b):
     """Same value: equal canonical strings, or numbers within 0.5%."""
     a, b = a.strip().lower(), b.strip().lower()
-    if a == b:
+    if a == b or less_precise(a, b):
         return True
     na, nb = _NUM.search(a.replace(",", "")), _NUM.search(b.replace(",", ""))
     if na and nb and not re.search(r"\d{4}-\d{2}", a + b):  # don't fuzz ISO dates
@@ -248,8 +250,9 @@ async def specialist_path(question, cls, tr, on_step=None):
         q = (f"{question} (No period was given: use the most recent fiscal year reported in this filing, "
              f"and name that fiscal year in the value.)") if assumed else question
         step(f"Extracting the fact from the {doc_name}…")
-        fact = await extract_fact(q, doc, tr)
-        return pick, doc, fact
+        fact, verified = await extract_verified(q, doc, tr)
+        step("Verifying quote…" if verified else "Quote not found in the document — unverified")
+        return pick, doc, (fact, verified)
 
     async def web():
         step("Cross-checking with Tavily…")
@@ -257,7 +260,8 @@ async def specialist_path(question, cls, tr, on_step=None):
         claims = await extract_claims(question, sources, tr) if sources else []
         return sources, claims
 
-    (pick, doc, fact), (web_sources, web_claims) = await asyncio.gather(official(), web())
+    (pick, doc, fv), (web_sources, web_claims) = await asyncio.gather(official(), web())
+    fact, verified = fv if fv else (None, False)
 
     if not fact or not fact.found:
         why = "no specialist results" if not pick else "fact not found in the specialist document"
@@ -277,13 +281,15 @@ async def specialist_path(question, cls, tr, on_step=None):
         verdict = await reconcile(question, fact, web_claim, tr)
         ws = web_sources[web_claim.source_index]
         rows.append(_source_row(ws, "Web", web_claim.value, struck=not verdict.agree))
-    status = ("verified: matches official source" if verdict and verdict.agree
-              else "conflict: official source wins" if verdict
-              else "official source only (no web value found)")
+    disagrees = bool(verdict and not verdict.agree)
+    status = ("unverified: quote not found in the document" if not verified
+              else "verified: official source" + (" (web disagrees; official wins)" if disagrees else ""))
     return {"route": f"specialist: {specialist}{' (latest 10-K, period assumed)' if assumed else ''}"
-                     f" -> fetch -> extract  ||  {WEB_CHECK}",
-            "answer": fact.value, "status": status, "sources": rows,
-            "explanation": verdict.explanation if verdict else ""}
+                     f" -> fetch -> extract -> verify quote",
+            "answer": fact.value, "status": status, "sources": rows, "verified": verified,
+            "quote": fact.quote, "url": doc["url"], "date": doc["date"], "source": src_name,
+            "source_type": "official", "web_disagrees": disagrees,
+            "explanation": verdict.explanation if disagrees else ""}
 
 
 # ---------------------------------------------------------------- code route
@@ -318,6 +324,7 @@ class PackageGuess(BaseModel):
 
 class ReleaseNotes(BaseModel):
     summary: str = Field(description="2-3 sentence answer to the question from the release notes")
+    quote: str = Field(description="Verbatim sentence or bullet from the notes that supports the summary")
     breaking: list[str] = Field(description="Breaking changes or removals listed in the notes; empty if none")
 
 
@@ -374,7 +381,8 @@ async def pypi_latest(pkg, tr):
     vt = _json_text(await fetch(api, tr, fmt="text", max_chars=400_000, no_cache=True))
     times = re.findall(r'"upload_time_iso_8601"\s*:\s*"([^"]+)"', vt)
     return {"registry": "PyPI", "version": ver, "date": min(times)[:10] if times else None, "repo": repo,
-            "url": f"https://pypi.org/project/{pkg}/{ver}/"}
+            "url": f"https://pypi.org/project/{pkg}/{ver}/", "api": f"https://pypi.org/pypi/{pkg}/json",
+            "quote": m.group(0), "doc": t}
 
 
 async def npm_latest(pkg, tr):
@@ -393,8 +401,11 @@ async def npm_latest(pkg, tr):
         repo = _gh_repo(_text(json.loads(vt).get("repository")))
     except json.JSONDecodeError:
         repo = _gh_repo(vt)
+    qm = re.search(r'"latest"\s*:\s*"[^"]+"', t)
     return {"registry": "npm", "version": ver, "date": None, "repo": repo,
-            "url": f"https://www.npmjs.com/package/{pkg}/v/{ver}"}
+            "url": f"https://www.npmjs.com/package/{pkg}/v/{ver}",
+            "api": f"https://registry.npmjs.org/-/package/{pkg}/dist-tags",
+            "quote": qm.group(0) if qm else f'"latest":"{ver}"', "doc": t}
 
 
 def _vkey(v):
@@ -416,17 +427,6 @@ def same_version(a, b):
     return bool(_vkey(a)[:-1]) and na == nb and fa == fb
 
 
-def best_web_claim(claims):
-    """The web's best answer: the most-cited version, ties broken by the highest version."""
-    if not claims:
-        return None
-    counts = {}
-    for c in claims:
-        counts.setdefault(_v(c.normalized) or _v(c.value), []).append(c)
-    key = max(counts, key=lambda k: (len(counts[k]), _vkey(k)))
-    return counts[key][0]
-
-
 async def github_release(repo, pkg, ver, tr):
     from urllib.parse import quote
     for tag in (f"v{ver}", ver, f"{pkg}=={ver}", f"{pkg}@{ver}"):
@@ -443,6 +443,7 @@ def _v(s):
 
 
 async def code_path(question, tr, on_step=None):
+    """Structured official source: the registry JSON is the answer, so no web cross-check."""
     step = on_step or _noop
     step("Identifying package…")
     pkg, eco, how = await identify_package(question, tr)
@@ -451,64 +452,50 @@ async def code_path(question, tr, on_step=None):
         out["route"] += "  (code: no package identified)"
         return out
     wants_changes = bool(CHANGES_RE.search(question))
-
-    async def official():
-        step(f"Fetching {'PyPI' if eco == 'pypi' else 'npm'} registry…")
-        info = await (pypi_latest if eco == "pypi" else npm_latest)(pkg, tr)
-        rel = None
-        if info and info["repo"] and (wants_changes or not info["date"]):
-            step("Fetching GitHub release…")
-            rel = await github_release(info["repo"], pkg, info["version"], tr)
-            if rel and not info["date"]:
-                info["date"] = rel["date"]
-        notes = None
-        if rel and wants_changes:
-            step("Reading release notes…")
-            notes = await ask(ReleaseNotes, "Answer the question using only these release notes.",
-                              f"Question: {question}\n\nRelease notes ({rel['url']}):\n{rel['text'][:DOC_CHARS]}",
-                              tr, "release-notes")
-        return info, rel, notes
-
-    async def web():
-        step("Cross-checking with Tavily…")
-        sources = await search(question, [WEB_CHECK], 3, tr)
-        if not sources:
-            return sources, []
-        claims = await extract_claims(f"What is the latest released version of the {pkg} package? "
-                                      f"(value = the version number only)", sources, tr)
-        return sources, claims
-
-    (info, rel, notes), (web_sources, web_claims) = await asyncio.gather(official(), web())
+    registry = "PyPI" if eco == "pypi" else "npm"
+    step(f"Fetching {registry}…")
+    info = await (pypi_latest if eco == "pypi" else npm_latest)(pkg, tr)
     if not info:
         out = await general_path(question, tr, on_step)
         out["route"] += f"  (code: {eco} lookup for '{pkg}' failed)"
         return out
+    rel = notes = None
+    if info["repo"] and (wants_changes or not info["date"]):
+        step("Fetching GitHub release…")
+        rel = await github_release(info["repo"], pkg, info["version"], tr)
+        if rel and not info["date"]:
+            info["date"] = rel["date"]
+    notes_ok = False
+    if rel and wants_changes:
+        step("Reading release notes…")
+        for attempt in range(2):  # retry once if the quote isn't in the notes
+            notes = await ask(ReleaseNotes, "Answer the question using only these release notes. "
+                              "The quote must be copied verbatim from the notes.",
+                              f"Question: {question}\n\nRelease notes ({rel['url']}):\n{rel['text'][:DOC_CHARS]}",
+                              tr, "release-notes")
+            notes_ok = quote_in(notes.quote, rel["text"])
+            if notes_ok:
+                break
+    step("Verifying quote…")
+    verified = quote_in(info["quote"], info["doc"]) and (notes_ok if notes else True)
 
     rows = [{"badge": "Official", "provider": info["registry"], "title": f"{pkg} {info['version']} on {info['registry']}",
-             "url": info["url"], "date": info["date"], "value": info["version"], "struck": False}]
+             "url": info["url"], "date": info["date"], "value": info["version"], "struck": False,
+             "quote": info["quote"]}]
     if rel:
         rows.append({"badge": "Official", "provider": "GitHub release", "title": f"{info['repo']} {rel['tag']}",
-                     "url": rel["url"], "date": rel["date"], "value": "release notes", "struck": False})
-    web_claim = best_web_claim(web_claims)
-    agree = None
-    if web_claim:
-        ws = web_sources[web_claim.source_index]
-        agree = same_version(web_claim.normalized, info["version"]) or same_version(web_claim.value, info["version"])
-        rows.append(_source_row(ws, "Web", web_claim.value, struck=not agree))
-
+                     "url": rel["url"], "date": rel["date"], "value": "release notes", "struck": False,
+                     "quote": notes.quote if notes else None})
     answer = f"{pkg} {info['version']}" + (f" (released {info['date']})" if info["date"] else "")
     if notes:
         answer += f" — {notes.summary}"
-    status = ("verified: matches official source" if agree
-              else "conflict: official source wins" if agree is False
-              else "official source only (no web value found)")
-    route = f"code: {pkg} ({eco}, via {how}) -> {info['registry']}" + (" + GitHub release" if rel else "") + f"  ||  {WEB_CHECK}"
-    return {"route": route, "answer": answer, "status": status, "sources": rows,
-            "explanation": ("Breaking: " + "; ".join(notes.breaking)) if notes and notes.breaking else "",
-            "package": {"name": pkg, "ecosystem": eco, "method": how, "official": info["version"],
-                        "official_date": info["date"], "web": web_claim.value if web_claim else None,
-                        "web_url": web_sources[web_claim.source_index]["url"] if web_claim else None,
-                        "web_date": web_sources[web_claim.source_index]["date"] if web_claim else None}}
+    route = f"code: {pkg} ({eco}, via {how}) -> {info['registry']} JSON" + (" + GitHub release" if rel else "")
+    return {"route": route, "answer": answer, "sources": rows, "verified": verified,
+            "status": "verified: official registry" if verified else "unverified: quote not found",
+            "quote": (notes.quote if notes else info["quote"]), "url": rel["url"] if notes else info["api"],
+            "date": info["date"], "source": info["registry"] + (" + GitHub" if rel else ""),
+            "source_type": "official", "entity": pkg,
+            "explanation": ("Breaking: " + "; ".join(notes.breaking)) if notes and notes.breaking else ""}
 
 
 async def general_path(question, tr, on_step=None):
@@ -539,8 +526,9 @@ async def general_path(question, tr, on_step=None):
         route += f" -> conflict -> escalate {' + '.join(GENERAL_ESCALATE)}"
 
     if not clusters:
-        return {"route": route, "answer": "no answer found", "status": "unresolved",
-                "sources": [_source_row(s, "Web") for s in sources[:6]], "explanation": ""}
+        return {"route": route, "answer": "no answer found", "status": "unverified: no answer found",
+                "sources": [_source_row(s, "Web") for s in sources[:6]], "explanation": "", "verified": False,
+                "quote": None, "url": None, "date": None, "source": None, "source_type": "web"}
 
     tally = {}
     for e, i in votes.items():
@@ -559,7 +547,26 @@ async def general_path(question, tr, on_step=None):
             if s["url"] in seen:
                 continue
             seen.add(s["url"])
-            rows.append(_source_row(s, "Agreeing engines" if cl_i == win else "Web", c.value, struck=cl_i != win))
+            row = _source_row(s, "Agreeing engines" if cl_i == win else "Web", c.value, struck=cl_i != win)
+            row["quote"] = c.quote
+            rows.append(row)
     rows.sort(key=lambda r: r["badge"] != "Agreeing engines")
-    return {"route": route, "answer": winner["value"], "status": status, "sources": rows,
+
+    # the winning value is verified if at least one of its quotes is really in its source's text
+    step("Verifying quote…")
+    best = next((c for c in winner["claims"] if quote_in(c.quote, sources[c.source_index]["text"])), None)
+    verified = best is not None and n_eng >= 2
+    vals = {c.normalized for c in winner["claims"]}
+    mixed = any(less_precise(a, b) for a in vals for b in vals if a != b)
+    if not verified:
+        status = "unverified: " + ("quote not found in source" if best is None else "only one engine")
+    elif mixed:
+        status += " (consistent, less precise)"
+    c0 = best or winner["claims"][0]
+    s0 = sources[c0.source_index]
+    precise = max(winner["claims"], key=lambda c: len(c.value))  # prefer the most precise phrasing
+    return {"route": route, "answer": precise.value if mixed else winner["value"], "status": status,
+            "sources": rows, "verified": verified, "less_precise": mixed,
+            "quote": c0.quote, "url": s0["url"], "date": s0["date"], "source": s0["provider"],
+            "source_type": "web",
             "explanation": f"{len(clusters)} distinct value(s) across {len(claims)} claims"}
