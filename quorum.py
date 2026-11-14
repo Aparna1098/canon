@@ -206,27 +206,38 @@ def telem():
     return _telem
 
 
-async def search(query, providers, num_results, tr):
+async def _search_once(query, providers, num_results, tr, attempt):
+    """One Telem search. Returns {provider: [sources]}; every provider asked gets a key."""
     t0 = time.perf_counter()
+    tag = " (retry)" if attempt else ""
     try:
         r = await telem().search(query, providers_include=providers, num_results=num_results,
                                  tier="default", fields=SEARCH_FIELDS)
     except TelemError as e:
         for p in providers:
-            tr.add("search", p, _ms(t0), ok=False, note=str(e)[:120])
-        return []
+            tr.add("search", p + tag, _ms(t0), ok=False, note=str(e)[:120])
+        return {p: [] for p in providers}
     wall = _ms(t0)
-    sources = []
+    out = {p: [] for p in providers}
     for run in r.by_provider or []:
-        tr.add("search", run.provider, run.latency_ms or wall, ok=run.status == "succeeded",
-               note=_text(run.error)[:120])
-        for res in run.results:
-            sources.append({
-                "provider": run.provider, "title": res.title or "", "url": res.url,
-                "date": str(res.publish_date) if res.publish_date else None,
-                "text": " ".join(filter(None, [_text(res.summary), _text(res.excerpt)])),
-            })
-    return sources
+        ok = run.status == "succeeded" and bool(run.results)
+        note = _text(run.error)[:120] or ("" if run.results else "0 results")
+        tr.add("search", run.provider + tag, run.latency_ms or wall, ok=ok, note=note)
+        out[run.provider] = [{
+            "provider": run.provider, "title": res.title or "", "url": res.url,
+            "date": str(res.publish_date) if res.publish_date else None,
+            "text": " ".join(filter(None, [_text(res.summary), _text(res.excerpt)])),
+        } for res in run.results]
+    return out
+
+
+async def search(query, providers, num_results, tr):
+    """Search; any provider that returns 0 results (or errors) is retried once before giving up."""
+    by_prov = await _search_once(query, providers, num_results, tr, attempt=0)
+    empty = [p for p in providers if not by_prov.get(p)]
+    if empty:
+        by_prov.update({p: v for p, v in (await _search_once(query, empty, num_results, tr, attempt=1)).items() if v})
+    return [s for p in providers for s in by_prov.get(p, [])]
 
 
 async def fetch(url, tr, fmt="markdown", max_chars=DOC_CHARS, no_cache=False):
