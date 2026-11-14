@@ -1,0 +1,149 @@
+{
+ "results": {
+  "C": {
+   "sec_edgar (NL question)": {
+    "status": "succeeded",
+    "n": 3,
+    "numbers": [],
+    "urls": [
+     "https://www.sec.gov/Archives/edgar/data/63296/000119380524001502/prec14a06204013_12192024.htm",
+     "https://www.sec.gov/Archives/edgar/data/63296/000092189525000007/prrn14a06204013_12312024.htm",
+     "https://www.sec.gov/Archives/edgar/data/63296/000092189525000091/defc14a06204013_01072025.htm"
+    ],
+    "answer": null,
+    "wall_ms": 719
+   },
+   "sec_edgar (keywords)": {
+    "status": "succeeded",
+    "n": 3,
+    "numbers": [],
+    "urls": [
+     "https://www.sec.gov/Archives/edgar/data/1318605/000162828026066738/exhibit9914.htm",
+     "https://www.sec.gov/Archives/edgar/data/1805521/000121390026109824/ea030876701ex99-2.htm",
+     "https://www.sec.gov/Archives/edgar/data/1805521/000121390026109222/ea030838701ex99-2.htm"
+    ],
+    "answer": null,
+    "wall_ms": 724
+   },
+   "tavily": {
+    "status": "succeeded",
+    "n": 3,
+    "numbers": [
+     [
+      "$28.05 billion",
+      "xpectations ### Tesla (TSLA) Q3 2026 highlights:   Revenue: $28.05 billion vs analyst estimates of $28.17 billion ",
+      "https://finance.yahoo.com/markets/stocks/articles/tesla-nasdaq-tsla-reports-q3-212913068.html"
+     ],
+     [
+      "$28.17 billion",
+      "ghlights:   Revenue: $28.05 billion vs analyst estimates of $28.17 billion (in line)  EPS (non-GAAP): $0.48 vs ana",
+      "https://finance.yahoo.com/markets/stocks/articles/tesla-nasdaq-tsla-reports-q3-212913068.html"
+     ],
+     [
+      "$46.85 billion",
+      " despite conventional wisdom. The company's revenue base of $46.85 billion five years ago has more than doubled to",
+      "https://finance.yahoo.com/markets/stocks/articles/tesla-nasdaq-tsla-reports-q3-212913068.html"
+     ],
+     [
+      "$103.6 billion",
+      "e of $46.85 billion five years ago has more than doubled to $103.6 billion in the last year, translating into an i",
+      "https://finance.yahoo.com/markets/stocks/articles/tesla-nasdaq-tsla-reports-q3-212913068.html"
+     ]
+    ],
+    "urls": [
+     "https://finance.yahoo.com/markets/stocks/articles/tesla-nasdaq-tsla-reports-q3-212913068.html",
+     "https://arstechnica.com/cars/2026/10/tesla-profits-drop-43-in-q3",
+     "https://www.youtube.com/watch?v=O7vv54TrGi8"
+    ],
+    "answer": "Tesla reported Q3\u202f2026 revenue of roughly $28\u202fbillion\u2014one source lists it as $28.05\u202fbillion, while two other sources cite $28.0\u202fbillion.",
+    "wall_ms": 396
+   },
+   "filing": {
+    "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026066738/exhibit9914.htm",
+    "status": "succeeded",
+    "provider": "exa",
+    "wall_ms": 275,
+    "chars": 20000,
+    "truncated": true,
+    "error": null,
+    "quarter": "Q3-2026",
+    "revenue_musd": 28046,
+    "columns": [
+     "Q3-2025",
+     "Q4-2025",
+     "Q1-2026",
+     "Q2-2026",
+     "Q3-2026"
+    ],
+    "row": [
+     "28,095",
+     "24,901",
+     "22,387",
+     "28,236",
+     "28,046"
+    ]
+   },
+   "agreement": {
+    "web_musd": 28050.0,
+    "official_musd": 28046,
+    "rel_diff": 0.00014262283391570991
+   }
+  }
+ },
+ "log": [
+  {
+   "query": "What was Tesla's revenue in Q3 2026?",
+   "providers": [
+    "tavily"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "tavily",
+     "status": "succeeded",
+     "usage": {
+      "credits": 2
+     },
+     "error": null,
+     "latency_ms": 32,
+     "n": 3
+    }
+   ]
+  },
+  {
+   "query": "What was Tesla's revenue in Q3 2026?",
+   "providers": [
+    "sec_edgar"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "sec_edgar",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 386,
+     "n": 3
+    }
+   ]
+  },
+  {
+   "query": "Tesla revenue Q3 2026 10-Q",
+   "providers": [
+    "sec_edgar"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "sec_edgar",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 425,
+     "n": 3
+    }
+   ]
+  }
+ ],
+ "spent": 0.0
+}

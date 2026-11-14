@@ -1,0 +1,505 @@
+{
+ "results": {
+  "A": {
+   "sec_edgar": [
+    {
+     "provider": "sec_edgar",
+     "ok": true,
+     "latency_ms": 51,
+     "wall_ms": 345,
+     "n": 3,
+     "usage": null,
+     "titles": [
+      "8-K: Tesla, Inc. (TSLA) (CIK 0001318605)",
+      "8-K/A: FARADAY FUTURE INTELLIGENT ELECTRIC INC. (FFAI) (CIK 0001805521)",
+      "8-K: FARADAY FUTURE INTELLIGENT ELECTRIC INC. (FFAI) (CIK 0001805521)"
+     ],
+     "urls": [
+      "https://www.sec.gov/Archives/edgar/data/1318605/000162828026066738/exhibit9914.htm",
+      "https://www.sec.gov/Archives/edgar/data/1805521/000121390026109824/ea030876701ex99-2.htm",
+      "https://www.sec.gov/Archives/edgar/data/1805521/000121390026109222/ea030838701ex99-2.htm"
+     ]
+    }
+   ],
+   "ncbi_pubmed": [
+    {
+     "provider": "ncbi_pubmed",
+     "ok": true,
+     "latency_ms": 2895,
+     "wall_ms": 3106,
+     "n": 3,
+     "usage": null,
+     "titles": [
+      "Mechanisms of action and therapeutic applications of GLP-1 and dual GIP/GLP-1 receptor agonists.",
+      "GLP-1 receptor agonists in the treatment of type 2 diabetes - state-of-the-art.",
+      "Cardiovascular and Kidney Outcomes and Mortality With Long-Acting Injectable and Oral Glucagon-Like Peptide 1 Receptor Agonists in Individuals With Type 2 Diabetes: A Systematic Review and Meta-analysis of Randomized Trials."
+     ],
+     "urls": [
+      "https://pubmed.ncbi.nlm.nih.gov/39114288/",
+      "https://pubmed.ncbi.nlm.nih.gov/33068776/",
+      "https://pubmed.ncbi.nlm.nih.gov/40156846/"
+     ]
+    }
+   ],
+   "fetchlayer_reddit": [
+    {
+     "provider": "fetchlayer_reddit",
+     "ok": true,
+     "latency_ms": 1809,
+     "wall_ms": 2043,
+     "n": 3,
+     "usage": null,
+     "titles": [
+      "Cursor vs ClaudeCode: which are you using?",
+      "Claude Code vs Cursor. Which one is actually better for everyday coding?",
+      "Switched from Cursor Ultra to Claude Code, and I'm not looking back"
+     ],
+     "urls": [
+      "https://www.reddit.com/r/ClaudeCode/comments/1wezxz7/cursor_vs_claudecode_which_are_you_using/",
+      "https://www.reddit.com/r/AIWorkStack/comments/1xovjkl/claude_code_vs_cursor_which_one_is_actually/",
+      "https://www.reddit.com/r/cursor/comments/1xut7fx/switched_from_cursor_ultra_to_claude_code_and_im/"
+     ]
+    }
+   ],
+   "fetchlayer_google_maps": [
+    {
+     "provider": "fetchlayer_google_maps",
+     "ok": true,
+     "latency_ms": 1697,
+     "wall_ms": 1875,
+     "n": 3,
+     "usage": null,
+     "titles": [
+      "Ramen Wakusei",
+      "Garlic High",
+      "Myzen Ramen"
+     ],
+     "urls": [
+      "https://www.google.com/maps/place/?q=place_id:ChIJK5iGzDi3j4AR-iRLeo0iDTw",
+      "https://www.google.com/maps/place/?q=place_id:ChIJW7dOAgC3j4ARTVGCV9_pscY",
+      "https://www.google.com/maps/place/?q=place_id:ChIJqX-rph-2j4ARf-ODWyV69a8"
+     ]
+    }
+   ]
+  },
+  "B": [
+   [
+    "exa",
+    "brave",
+    25.0,
+    47.05882352941177
+   ],
+   [
+    "exa",
+    "tavily",
+    7.142857142857143,
+    11.538461538461538
+   ],
+   [
+    "exa",
+    "parallel",
+    35.0,
+    36.8421052631579
+   ],
+   [
+    "brave",
+    "tavily",
+    20.0,
+    23.80952380952381
+   ],
+   [
+    "brave",
+    "parallel",
+    28.571428571428573,
+    53.333333333333336
+   ],
+   [
+    "tavily",
+    "parallel",
+    12.5,
+    17.391304347826086
+   ]
+  ],
+  "C": {
+   "sec_edgar (NL question)": {
+    "status": "succeeded",
+    "n": 3,
+    "numbers": [],
+    "urls": [
+     "https://www.sec.gov/Archives/edgar/data/63296/000119380524001502/prec14a06204013_12192024.htm",
+     "https://www.sec.gov/Archives/edgar/data/63296/000092189525000007/prrn14a06204013_12312024.htm",
+     "https://www.sec.gov/Archives/edgar/data/63296/000092189525000091/defc14a06204013_01072025.htm"
+    ],
+    "answer": null,
+    "wall_ms": 180
+   },
+   "sec_edgar (keywords)": {
+    "status": "succeeded",
+    "n": 3,
+    "numbers": [],
+    "urls": [
+     "https://www.sec.gov/Archives/edgar/data/1318605/000162828026066738/exhibit9914.htm",
+     "https://www.sec.gov/Archives/edgar/data/1805521/000121390026109824/ea030876701ex99-2.htm",
+     "https://www.sec.gov/Archives/edgar/data/1805521/000121390026109222/ea030838701ex99-2.htm"
+    ],
+    "answer": null,
+    "wall_ms": 1567
+   },
+   "tavily": {
+    "status": "succeeded",
+    "n": 3,
+    "numbers": [
+     [
+      "$28.05 billion",
+      "xpectations ### Tesla (TSLA) Q3 2026 highlights:   Revenue: $28.05 billion vs analyst estimates of $28.17 billion ",
+      "https://finance.yahoo.com/markets/stocks/articles/tesla-nasdaq-tsla-reports-q3-212913068.html"
+     ],
+     [
+      "$28.17 billion",
+      "ghlights:   Revenue: $28.05 billion vs analyst estimates of $28.17 billion (in line)  EPS (non-GAAP): $0.48 vs ana",
+      "https://finance.yahoo.com/markets/stocks/articles/tesla-nasdaq-tsla-reports-q3-212913068.html"
+     ],
+     [
+      "$46.85 billion",
+      " despite conventional wisdom. The company's revenue base of $46.85 billion five years ago has more than doubled to",
+      "https://finance.yahoo.com/markets/stocks/articles/tesla-nasdaq-tsla-reports-q3-212913068.html"
+     ],
+     [
+      "$103.6 billion",
+      "e of $46.85 billion five years ago has more than doubled to $103.6 billion in the last year, translating into an i",
+      "https://finance.yahoo.com/markets/stocks/articles/tesla-nasdaq-tsla-reports-q3-212913068.html"
+     ]
+    ],
+    "urls": [
+     "https://finance.yahoo.com/markets/stocks/articles/tesla-nasdaq-tsla-reports-q3-212913068.html",
+     "https://arstechnica.com/cars/2026/10/tesla-profits-drop-43-in-q3",
+     "https://www.youtube.com/watch?v=O7vv54TrGi8"
+    ],
+    "answer": "Tesla reported Q3\u202f2026 revenue of roughly $28\u202fbillion\u2014one source lists it as $28.05\u202fbillion, while two other sources cite $28.0\u202fbillion.",
+    "wall_ms": 302
+   },
+   "filing": {
+    "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026066738/exhibit9914.htm",
+    "status": "succeeded",
+    "provider": "exa",
+    "wall_ms": 401,
+    "chars": 20000,
+    "truncated": true,
+    "error": null,
+    "quarter": "Q3-2026",
+    "revenue_musd": 28046,
+    "columns": [
+     "Q3-2025",
+     "Q4-2025",
+     "Q1-2026",
+     "Q2-2026",
+     "Q3-2026"
+    ],
+    "row": [
+     "28,095",
+     "24,901",
+     "22,387",
+     "28,236",
+     "28,046"
+    ]
+   },
+   "agreement": {
+    "web_musd": 28050.0,
+    "official_musd": 28046,
+    "rel_diff": 0.00014262283391570991
+   }
+  }
+ },
+ "log": [
+  {
+   "query": "Tesla revenue Q3 2026 10-Q",
+   "providers": [
+    "sec_edgar"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "sec_edgar",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 51,
+     "n": 3
+    }
+   ]
+  },
+  {
+   "query": "GLP-1 agonists cardiovascular outcomes",
+   "providers": [
+    "ncbi_pubmed"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "ncbi_pubmed",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 2895,
+     "n": 3
+    }
+   ]
+  },
+  {
+   "query": "cursor vs claude code opinions",
+   "providers": [
+    "fetchlayer_reddit"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "fetchlayer_reddit",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 1809,
+     "n": 3
+    }
+   ]
+  },
+  {
+   "query": "best ramen in Sunnyvale",
+   "providers": [
+    "fetchlayer_google_maps"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "fetchlayer_google_maps",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 1697,
+     "n": 3
+    }
+   ]
+  },
+  {
+   "query": "Tesla Q3 2026 revenue",
+   "providers": [
+    "exa",
+    "brave",
+    "tavily",
+    "parallel"
+   ],
+   "cost": 0.007,
+   "runs": [
+    {
+     "provider": "exa",
+     "status": "succeeded",
+     "usage": {
+      "total": 0.007,
+      "search": {
+       "neural": 0.007
+      }
+     },
+     "error": null,
+     "latency_ms": 109,
+     "n": 5
+    },
+    {
+     "provider": "brave",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 268,
+     "n": 5
+    },
+    {
+     "provider": "tavily",
+     "status": "succeeded",
+     "usage": {
+      "credits": 2
+     },
+     "error": null,
+     "latency_ms": 47,
+     "n": 5
+    },
+    {
+     "provider": "parallel",
+     "status": "succeeded",
+     "usage": [
+      {
+       "name": "sku_search",
+       "count": 1
+      }
+     ],
+     "error": null,
+     "latency_ms": 1268,
+     "n": 5
+    }
+   ]
+  },
+  {
+   "query": "when was the ISS launched",
+   "providers": [
+    "exa",
+    "brave",
+    "tavily",
+    "parallel"
+   ],
+   "cost": 0.007,
+   "runs": [
+    {
+     "provider": "exa",
+     "status": "succeeded",
+     "usage": {
+      "total": 0.007,
+      "search": {
+       "neural": 0.007
+      }
+     },
+     "error": null,
+     "latency_ms": 104,
+     "n": 5
+    },
+    {
+     "provider": "brave",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 297,
+     "n": 5
+    },
+    {
+     "provider": "tavily",
+     "status": "succeeded",
+     "usage": {
+      "credits": 2
+     },
+     "error": null,
+     "latency_ms": 26,
+     "n": 5
+    },
+    {
+     "provider": "parallel",
+     "status": "succeeded",
+     "usage": [
+      {
+       "name": "sku_search",
+       "count": 1
+      }
+     ],
+     "error": null,
+     "latency_ms": 882,
+     "n": 5
+    }
+   ]
+  },
+  {
+   "query": "latest pytorch version",
+   "providers": [
+    "exa",
+    "brave",
+    "tavily",
+    "parallel"
+   ],
+   "cost": 0.007,
+   "runs": [
+    {
+     "provider": "exa",
+     "status": "succeeded",
+     "usage": {
+      "total": 0.007,
+      "search": {
+       "neural": 0.007
+      }
+     },
+     "error": null,
+     "latency_ms": 117,
+     "n": 5
+    },
+    {
+     "provider": "brave",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 242,
+     "n": 5
+    },
+    {
+     "provider": "tavily",
+     "status": "succeeded",
+     "usage": {
+      "credits": 2
+     },
+     "error": null,
+     "latency_ms": 43,
+     "n": 5
+    },
+    {
+     "provider": "parallel",
+     "status": "succeeded",
+     "usage": [
+      {
+       "name": "sku_search",
+       "count": 1
+      }
+     ],
+     "error": null,
+     "latency_ms": 1128,
+     "n": 5
+    }
+   ]
+  },
+  {
+   "query": "What was Tesla's revenue in Q3 2026?",
+   "providers": [
+    "sec_edgar"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "sec_edgar",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 41,
+     "n": 3
+    }
+   ]
+  },
+  {
+   "query": "What was Tesla's revenue in Q3 2026?",
+   "providers": [
+    "tavily"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "tavily",
+     "status": "succeeded",
+     "usage": {
+      "credits": 2
+     },
+     "error": null,
+     "latency_ms": 28,
+     "n": 3
+    }
+   ]
+  },
+  {
+   "query": "Tesla revenue Q3 2026 10-Q",
+   "providers": [
+    "sec_edgar"
+   ],
+   "cost": 0.0,
+   "runs": [
+    {
+     "provider": "sec_edgar",
+     "status": "succeeded",
+     "usage": null,
+     "error": null,
+     "latency_ms": 1393,
+     "n": 3
+    }
+   ]
+  }
+ ],
+ "spent": 0.021
+}
