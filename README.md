@@ -32,3 +32,17 @@ Prints `by_provider` (status, result count, latency, top result per provider) an
 Findings so far: the server accepts only `auto_routing="accuracy"`, which ranks providers but still runs the
 whole set; `max_routing_providers` is ignored. Only exa reports a dollar `usage.total`, so reported cost is a
 lower bound. `sec_edgar` needs keyword queries and returns filing pointers only, so the design fetches the document.
+
+## quorum: specialist router
+
+```bash
+.venv/bin/python quorum.py "What was Tesla's revenue in Q3 2026?"   # CLI
+.venv/bin/streamlit run app.py                                      # UI
+```
+
+Needs `TELEM_API_KEY` and `ANTHROPIC_API_KEY` in `.env`. `QUORUM_MODEL` (default `claude-opus-5-5`) and
+`QUORUM_EFFORT` (default `low`) override the LLM used for classify/extract/reconcile.
+
+- finance → `sec_edgar`, medical → `ncbi_pubmed`, local → `fetchlayer_google_maps`: keyword search → fetch the
+  matching document → extract the fact, checked in parallel against Tavily. Official source wins on conflict.
+- general → exa + tavily, cluster the extracted claims; on conflict escalate to brave + parallel and resolve by quorum.
