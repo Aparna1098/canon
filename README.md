@@ -2,7 +2,10 @@
 
 **Telem finds the sources. Canon keeps the facts.**
 
-**[▶ Open the demo](https://aparna1098.github.io/canon/)**: the hosted page replays real recorded runs of the example
+[![Watch the 2.5-minute demo video](web/demo-poster.jpg)](https://aparna1098.github.io/canon/demo.mp4)
+
+**[▶ Watch the demo video](https://aparna1098.github.io/canon/demo.mp4)** (2:35, narrated, real live runs) ·
+**[Open the demo page](https://aparna1098.github.io/canon/)**: the hosted page replays real recorded runs of the example
 questions. For live answers to any question, run Canon locally (below).
 
 Canon is a shared memory of verified facts for AI agents, built on [Telem](https://telem.ai).
@@ -70,6 +73,7 @@ curl -s localhost:8000/answer -H 'content-type: application/json' -d '{"question
 | `api.py` | FastAPI: demo page `GET /`, `POST /answer`, `GET /answer/stream` (SSE), `GET /facts`, `GET /stats`, `GET /eval`, `POST /memory/reset` |
 | `web/index.html` | demo page (vanilla JS + Tailwind CDN, no build step) |
 | `app.py`, `eval.py` | backup Streamlit UI, eval (`questions.jsonl`) |
+| `demo/` | narrated demo video: `demo/build.py` voices `scenes.py` (ElevenLabs/OpenAI), records the live page with Playwright, cuts the waits, muxes → `demo/out/canon_demo.mp4` |
 | `experiments/` | the scripts that shaped the design ([README](experiments/README.md)) |
 
 ## What the experiments found
