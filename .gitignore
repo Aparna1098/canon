@@ -1,0 +1,13 @@
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# Dependencies / build
+node_modules/
+__pycache__/
+.venv/
+dist/
+
+# OS
+.DS_Store
