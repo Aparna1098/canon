@@ -1,0 +1,15 @@
+{"id": 1, "category": "code", "question": "Latest version of pytorch", "reworded": "What is the newest PyTorch release?", "registry": "pypi:torch"}
+{"id": 2, "category": "code", "question": "Latest version of next.js", "reworded": "What's the current next.js version?", "registry": "npm:next"}
+{"id": 3, "category": "code", "question": "Latest pydantic version", "reworded": "Which pydantic version is the most recent?", "registry": "pypi:pydantic"}
+{"id": 4, "category": "code", "question": "Latest version of langchain", "reworded": "What is the newest langchain release?", "registry": "pypi:langchain"}
+{"id": 5, "category": "code", "question": "Latest version of react", "reworded": "What's the most recent react release?", "registry": "npm:react"}
+{"id": 6, "category": "code", "question": "Latest version of fastapi", "reworded": "What is the current fastapi release?", "registry": "pypi:fastapi"}
+{"id": 7, "category": "finance", "question": "What was Tesla's revenue in Q3 2026?", "reworded": "How much revenue did Tesla report for Q3 2026?", "expect": ["28[.,]0[45]", "28,?046"]}
+{"id": 8, "category": "finance", "question": "What was Tesla's revenue in Q2 2026?", "reworded": "Tesla total revenues Q2 2026?", "expect": ["28[.,]2[34]", "28,?236"]}
+{"id": 9, "category": "finance", "question": "What was Tesla's revenue in Q1 2026?", "reworded": "How much did Tesla make in revenue in Q1 2026?", "expect": ["22[.,]3[89]", "22,?387"]}
+{"id": 10, "category": "medical", "question": "Does semaglutide reduce cardiovascular events in obesity?", "reworded": "Does semaglutide lower the risk of cardiovascular events in people with obesity?", "expect": ["\\byes\\b", "reduc", "lower"]}
+{"id": 11, "category": "medical", "question": "Does dapagliflozin reduce hospitalization for heart failure?", "reworded": "Does dapagliflozin lower heart failure hospitalizations?", "expect": ["\\byes\\b", "reduc", "lower"]}
+{"id": 12, "category": "local", "question": "What is the address of the Computer History Museum in Mountain View?", "reworded": "Where is the Computer History Museum in Mountain View located?", "expect": ["1401"]}
+{"id": 13, "category": "local", "question": "Where is the Exploratorium in San Francisco?", "reworded": "What is the location of the Exploratorium in San Francisco?", "expect": ["pier 15", "pier 17"]}
+{"id": 14, "category": "general", "question": "When was the ISS launched?", "reworded": "When was the ISS first launched into orbit?", "expect": ["1998"]}
+{"id": 15, "category": "general", "question": "Who wrote the novel Middlemarch?", "reworded": "Who is the author of the novel Middlemarch?", "expect": ["george eliot", "mary ann evans"]}

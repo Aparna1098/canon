@@ -3,3 +3,7 @@ python-dotenv
 anthropic>=2.8
 streamlit>=1.67
 sentence-transformers>=6.3
+fastapi>=0.115
+uvicorn>=0.30
+httpx
+certifi
