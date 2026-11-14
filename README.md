@@ -2,6 +2,9 @@
 
 **Telem finds the sources. Canon keeps the facts.**
 
+**[▶ Open the demo](https://aparna1098.github.io/canon/)**: the hosted page replays real recorded runs of the example
+questions. For live answers to any question, run Canon locally (below).
+
 Canon is a shared memory of verified facts for AI agents, built on [Telem](https://telem.ai).
 Agents ask Canon a factual question. Canon answers from the official source with an exact quote that it has checked
 against the document, then remembers the fact so the next agent pays 0 searches for it.
@@ -48,6 +51,7 @@ cp .env.example .env                       # TELEM_API_KEY, ANTHROPIC_API_KEY
 
 .venv/bin/uvicorn api:app --port 8000      # demo page at http://localhost:8000 + API
 .venv/bin/streamlit run app.py             # backup UI (Streamlit)
+.venv/bin/python scripts/record_replay.py  # re-record web/replay.json for the hosted demo (server must be running)
 .venv/bin/python eval.py                   # eval → eval_results.md (moves facts.db aside first)
 .venv/bin/python -m canon.canon "Latest version of next.js"   # CLI
 ```

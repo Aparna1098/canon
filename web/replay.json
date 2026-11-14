@@ -1,0 +1,545 @@
+{
+ "recorded_at": "2026-11-14 14:35 PST",
+ "eval": {
+  "web": {
+   "accuracy": 0.9333333333333333,
+   "calls": 1,
+   "tokens": 2689.8,
+   "latency": 3.8379333333333334,
+   "hit_rate": null
+  },
+  "default": {
+   "accuracy": 0.8666666666666667,
+   "calls": 7,
+   "tokens": 19555.8,
+   "latency": 4.199933333333333,
+   "hit_rate": null
+  },
+  "canon1": {
+   "accuracy": 1.0,
+   "calls": 3,
+   "tokens": 43.733333333333334,
+   "latency": 7.3712,
+   "hit_rate": 0.0
+  },
+  "canon2": {
+   "accuracy": 1.0,
+   "calls": 0.4666666666666667,
+   "tokens": 43.733333333333334,
+   "latency": 0.41326666666666667,
+   "hit_rate": 0.8
+  }
+ },
+ "runs": [
+  {
+   "question": "Latest pydantic version",
+   "events": [
+    {
+     "t": 12,
+     "event": "step",
+     "data": {
+      "kind": "memory_check",
+      "label": "Checking memory"
+     }
+    },
+    {
+     "t": 150,
+     "event": "step",
+     "data": {
+      "kind": "route",
+      "label": "Classifying"
+     }
+    },
+    {
+     "t": 158,
+     "event": "step",
+     "data": {
+      "kind": "route",
+      "label": "Classified as code via embedding (8 ms)"
+     }
+    },
+    {
+     "t": 158,
+     "event": "step",
+     "data": {
+      "kind": "route",
+      "label": "Identifying package"
+     }
+    },
+    {
+     "t": 158,
+     "event": "step",
+     "data": {
+      "kind": "telem_fetch",
+      "label": "Fetching PyPI via Telem"
+     }
+    },
+    {
+     "t": 385,
+     "event": "web_only",
+     "data": {
+      "provider": "tavily",
+      "answer": "The most recent release shown is\u202fv2.13.4\u202f(2026\u201105\u201106).",
+      "urls": [
+       "https://pypi.org/project/pydantic",
+       "https://pydantic.dev/docs/validation/latest/get-started/changelog",
+       "https://pydantic.dev/articles/pydantic-v2-12-release",
+       "https://github.com/pydantic/pydantic/releases",
+       "https://pypi.org/project/pydantic/2.10.6"
+      ],
+      "url": "https://pypi.org/project/pydantic",
+      "title": "pydantic \u00b7 PyPI",
+      "date": null,
+      "tokens_read": 2165,
+      "calls": 1,
+      "latency_ms": 383
+     }
+    },
+    {
+     "t": 1668,
+     "event": "step",
+     "data": {
+      "kind": "verify",
+      "label": "Verifying quote"
+     }
+    },
+    {
+     "t": 1669,
+     "event": "step",
+     "data": {
+      "kind": "saved",
+      "label": "Saved to memory"
+     }
+    },
+    {
+     "t": 1669,
+     "event": "result",
+     "data": {
+      "question": "Latest pydantic version",
+      "answer": "pydantic 2.14.3 (released 2026-11-05)",
+      "quote": "\"version\":\"2.14.3\"",
+      "source": "PyPI",
+      "url": "https://pypi.org/pypi/pydantic/json",
+      "date": "2026-11-05",
+      "verified": true,
+      "status": "verified: official registry",
+      "route": "code: pydantic (pypi, via known-list) -> PyPI JSON",
+      "category": "code",
+      "entity": "pydantic",
+      "from_memory": false,
+      "calls_used": 2,
+      "calls_default": 7,
+      "tokens_read": 70456,
+      "tokens_returned": 25,
+      "tokens_saved": 70431,
+      "latency_ms": 1667,
+      "sources": [
+       {
+        "badge": "Official",
+        "provider": "PyPI",
+        "url": "https://pypi.org/project/pydantic/2.14.3/",
+        "value": "2.14.3"
+       }
+      ],
+      "web_disagrees": false,
+      "less_precise": false
+     }
+    },
+    {
+     "t": 1669,
+     "event": "done",
+     "data": {}
+    }
+   ]
+  },
+  {
+   "question": "What was Tesla's revenue in Q3 2026?",
+   "events": [
+    {
+     "t": 2,
+     "event": "step",
+     "data": {
+      "kind": "memory_check",
+      "label": "Checking memory"
+     }
+    },
+    {
+     "t": 11,
+     "event": "step",
+     "data": {
+      "kind": "route",
+      "label": "Classifying"
+     }
+    },
+    {
+     "t": 20,
+     "event": "step",
+     "data": {
+      "kind": "route",
+      "label": "Classified as finance via embedding (6 ms)"
+     }
+    },
+    {
+     "t": 20,
+     "event": "step",
+     "data": {
+      "kind": "route",
+      "label": "Extracting query parameters"
+     }
+    },
+    {
+     "t": 224,
+     "event": "web_only",
+     "data": {
+      "provider": "tavily",
+      "answer": "Tesla reported revenue of roughly $28\u202fbillion in the third quarter of 2026, with the detailed figure given as $28.05\u202fbillion (about $28.0\u202fbillion to $28.046\u202fbillion across reports).",
+      "urls": [
+       "https://electrek.co/2026/10/21/tesla-tsla-q3-2026-financial-results",
+       "https://arstechnica.com/cars/2026/10/tesla-profits-drop-43-in-q3",
+       "https://www.youtube.com/watch?v=O7vv54TrGi8",
+       "https://www.teslarati.com/tesla-tsla-q3-2026-earnings-results",
+       "https://vestedfinance.com/blog/us-stocks/tesla-q3-earnings-2026"
+      ],
+      "url": "https://electrek.co/2026/10/21/tesla-tsla-q3-2026-financial-results",
+      "title": "Tesla (TSLA) releases Q3 2026 financial results: margins rebound, profit still falls | Electrek",
+      "date": null,
+      "tokens_read": 3170,
+      "calls": 1,
+      "latency_ms": 223
+     }
+    },
+    {
+     "t": 2233,
+     "event": "step",
+     "data": {
+      "kind": "telem_search",
+      "label": "Searching SEC via Telem"
+     }
+    },
+    {
+     "t": 2233,
+     "event": "step",
+     "data": {
+      "kind": "telem_search",
+      "label": "Cross-checking with Tavily via Telem"
+     }
+    },
+    {
+     "t": 2836,
+     "event": "step",
+     "data": {
+      "kind": "telem_fetch",
+      "label": "Fetching filing via Telem"
+     }
+    },
+    {
+     "t": 3260,
+     "event": "step",
+     "data": {
+      "kind": "extract",
+      "label": "Extracting the fact from the filing"
+     }
+    },
+    {
+     "t": 4591,
+     "event": "step",
+     "data": {
+      "kind": "verify",
+      "label": "Verifying quote"
+     }
+    },
+    {
+     "t": 4592,
+     "event": "step",
+     "data": {
+      "kind": "info",
+      "label": "Comparing official and web values"
+     }
+    },
+    {
+     "t": 6652,
+     "event": "step",
+     "data": {
+      "kind": "saved",
+      "label": "Saved to memory"
+     }
+    },
+    {
+     "t": 6652,
+     "event": "result",
+     "data": {
+      "question": "What was Tesla's revenue in Q3 2026?",
+      "answer": "$28.05 billion",
+      "quote": "Total revenues 28,095 24,901 22,387 28,236 28,046",
+      "source": "SEC",
+      "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026066738/exhibit9914.htm",
+      "date": "2026-10-21",
+      "verified": true,
+      "status": "verified: official source",
+      "route": "specialist: sec_edgar -> fetch -> extract -> verify quote",
+      "category": "finance",
+      "entity": "Tesla",
+      "from_memory": false,
+      "calls_used": 3,
+      "calls_default": 7,
+      "tokens_read": 11441,
+      "tokens_returned": 39,
+      "tokens_saved": 11402,
+      "latency_ms": 6648,
+      "sources": [
+       {
+        "badge": "Official",
+        "provider": "sec_edgar",
+        "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026066738/exhibit9914.htm",
+        "value": "$28.05 billion"
+       },
+       {
+        "badge": "Web",
+        "provider": "tavily",
+        "url": "https://www.youtube.com/watch?v=drBTGXfBbvs",
+        "value": "$28.0 billion"
+       }
+      ],
+      "web_disagrees": false,
+      "less_precise": false
+     }
+    },
+    {
+     "t": 6652,
+     "event": "done",
+     "data": {}
+    }
+   ]
+  },
+  {
+   "question": "How much revenue did Tesla report for Q3 2026?",
+   "events": [
+    {
+     "t": 6,
+     "event": "step",
+     "data": {
+      "kind": "memory_check",
+      "label": "Checking memory"
+     }
+    },
+    {
+     "t": 21,
+     "event": "step",
+     "data": {
+      "kind": "memory_hit",
+      "label": "Found in memory (cosine 0.95) \u2014 0 calls"
+     }
+    },
+    {
+     "t": 21,
+     "event": "result",
+     "data": {
+      "question": "How much revenue did Tesla report for Q3 2026?",
+      "answer": "$28.05 billion",
+      "quote": "Total revenues 28,095 24,901 22,387 28,236 28,046",
+      "source": "SEC",
+      "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026066738/exhibit9914.htm",
+      "date": "2026-10-21",
+      "verified": true,
+      "status": "verified: official source",
+      "route": "memory (fact #24, cosine 0.95)",
+      "category": "finance",
+      "entity": "Tesla",
+      "from_memory": true,
+      "calls_used": 0,
+      "calls_default": 7,
+      "tokens_read": 0,
+      "tokens_returned": 39,
+      "tokens_saved": 11402,
+      "latency_ms": 17,
+      "sources": [
+       {
+        "badge": "Official",
+        "provider": "sec_edgar",
+        "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026066738/exhibit9914.htm",
+        "value": "$28.05 billion"
+       },
+       {
+        "badge": "Web",
+        "provider": "tavily",
+        "url": "https://www.youtube.com/watch?v=drBTGXfBbvs",
+        "value": "$28.0 billion"
+       }
+      ],
+      "web_disagrees": false,
+      "less_precise": false
+     }
+    },
+    {
+     "t": 4401,
+     "event": "web_only",
+     "data": {
+      "provider": "tavily",
+      "answer": "Tesla reported $28.05\u202fbillion in revenue for Q3\u202f2026.",
+      "urls": [
+       "https://www.basenor.com/blogs/news/tesla-q3-2026-earnings-28-05b-revenue-486-532-deliveries-fsd-subs-up-67",
+       "https://electrek.co/2026/10/21/tesla-tsla-q3-2026-financial-results",
+       "https://finance.yahoo.com/markets/stocks/articles/tesla-nasdaq-tsla-reports-q3-212913068.html",
+       "https://arstechnica.com/cars/2026/10/tesla-profits-drop-43-in-q3",
+       "https://www.kucoin.com/blog/tesla-q3-2026-earnings-revenue-net-income-decline"
+      ],
+      "url": "https://www.basenor.com/blogs/news/tesla-q3-2026-earnings-28-05b-revenue-486-532-deliveries-fsd-subs-up-67",
+      "title": "Tesla Q3 2026 Earnings: $28.05B Revenue, 486,532 Deliveries, FSD Subs",
+      "date": null,
+      "tokens_read": 3106,
+      "calls": 1,
+      "latency_ms": 4397
+     }
+    },
+    {
+     "t": 4401,
+     "event": "done",
+     "data": {}
+    }
+   ]
+  },
+  {
+   "question": "What's new in the latest langchain release?",
+   "events": [
+    {
+     "t": 6,
+     "event": "step",
+     "data": {
+      "kind": "memory_check",
+      "label": "Checking memory"
+     }
+    },
+    {
+     "t": 22,
+     "event": "step",
+     "data": {
+      "kind": "route",
+      "label": "Classifying"
+     }
+    },
+    {
+     "t": 1477,
+     "event": "step",
+     "data": {
+      "kind": "route",
+      "label": "Classified as code via haiku (1455 ms)"
+     }
+    },
+    {
+     "t": 1478,
+     "event": "step",
+     "data": {
+      "kind": "route",
+      "label": "Identifying package"
+     }
+    },
+    {
+     "t": 1478,
+     "event": "step",
+     "data": {
+      "kind": "telem_fetch",
+      "label": "Fetching PyPI via Telem"
+     }
+    },
+    {
+     "t": 3070,
+     "event": "step",
+     "data": {
+      "kind": "telem_fetch",
+      "label": "Fetching GitHub release via Telem"
+     }
+    },
+    {
+     "t": 5920,
+     "event": "web_only",
+     "data": {
+      "provider": "tavily",
+      "answer": "The most recent LangChain release is version\u202f1.5.0 (Nov\u202f10\u202f2026). It drops support for end\u2011of\u2011life Python\u202f3.10 (minimum Python\u202f3.11) and raises the minimum\u202flangchain\u2011core requirement to\u202f1.8.0. It adds a model router and auto\u2011mode middleware (with\u202fModelRouterMiddleware marked beta), removes the obsolete Python\u202f3.10 from the\u202flangchain_v1 package, and includes documentation explaining the Baseten minimum version.",
+      "urls": [
+       "https://releasebot.io/updates/langchain-ai",
+       "https://docs.langchain.com/oss/python/releases/changelog",
+       "https://github.com/langchain-ai/langchain/releases",
+       "https://github.com/langchain-ai/langchain",
+       "https://docs.langchain.com/oss/javascript/releases/langchain-v1"
+      ],
+      "url": "https://releasebot.io/updates/langchain-ai",
+      "title": "LangChain Release Notes - November 2026 Latest Updates - Releasebot",
+      "date": null,
+      "tokens_read": 3317,
+      "calls": 1,
+      "latency_ms": 5916
+     }
+    },
+    {
+     "t": 15410,
+     "event": "step",
+     "data": {
+      "kind": "extract",
+      "label": "Reading release notes"
+     }
+    },
+    {
+     "t": 18715,
+     "event": "step",
+     "data": {
+      "kind": "verify",
+      "label": "Verifying quote"
+     }
+    },
+    {
+     "t": 18718,
+     "event": "step",
+     "data": {
+      "kind": "saved",
+      "label": "Saved to memory"
+     }
+    },
+    {
+     "t": 18718,
+     "event": "result",
+     "data": {
+      "question": "What's new in the latest langchain release?",
+      "answer": "langchain 1.5.0 (released 2026-11-11) \u2014 langchain 1.5.0 adds a model router and auto mode middleware, with ModelRouterMiddleware marked as beta. It also drops support for Python 3.10, so the minimum is now Python 3.11 and the minimum langchain-core version is 1.8.0. Users on Python 3.10 will continue to resolve langchain 1.4.x.",
+      "quote": "feat(langchain): add model router and auto mode middleware (#41766)",
+      "source": "PyPI + GitHub",
+      "url": "https://github.com/langchain-ai/langchain/releases/tag/langchain%3D%3D1.5.0",
+      "date": "2026-11-11",
+      "verified": true,
+      "status": "verified: official registry",
+      "route": "code: langchain (pypi, via known-list) -> PyPI JSON + GitHub release",
+      "category": "code",
+      "entity": "langchain",
+      "from_memory": false,
+      "calls_used": 5,
+      "calls_default": 7,
+      "tokens_read": 51861,
+      "tokens_returned": 121,
+      "tokens_saved": 51740,
+      "latency_ms": 18710,
+      "sources": [
+       {
+        "badge": "Official",
+        "provider": "PyPI",
+        "url": "https://pypi.org/project/langchain/1.5.0/",
+        "value": "1.5.0"
+       },
+       {
+        "badge": "Official",
+        "provider": "GitHub release",
+        "url": "https://github.com/langchain-ai/langchain/releases/tag/langchain%3D%3D1.5.0",
+        "value": "release notes"
+       }
+      ],
+      "web_disagrees": false,
+      "less_precise": false
+     }
+    },
+    {
+     "t": 18718,
+     "event": "done",
+     "data": {}
+    }
+   ]
+  }
+ ]
+}

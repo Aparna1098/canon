@@ -49,6 +49,8 @@
 
 <main class="max-w-6xl mx-auto px-6">
 
+  <div id="replay-banner" class="hidden mt-4 rounded-xl border border-line bg-panel px-5 py-3 text-base text-zinc-300"></div>
+
   <!-- 2. Hero -->
   <section class="pt-14 pb-12 text-center">
     <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">
@@ -215,7 +217,7 @@ function tile(big, small) {
 }
 async function loadEval() {
   let s;
-  try { s = await getJSON("/eval"); } catch {
+  try { s = REPLAY ? REPLAY.eval : await getJSON("/eval"); if (!s || !s.canon1) throw 0; } catch {
     s = { web: { accuracy: .933, calls: 1, tokens: 2690, latency: 3.8 }, default: { accuracy: .867, calls: 7, tokens: 19556, latency: 4.2 },
           canon1: { accuracy: 1, calls: 3, tokens: 44, latency: 7.4, hit_rate: 0 }, canon2: { accuracy: 1, calls: .5, tokens: 44, latency: .4, hit_rate: .8 } };
   }
@@ -244,7 +246,8 @@ function statBox(n, label) {
 }
 async function loadMemory() {
   try {
-    const [st, facts] = await Promise.all([getJSON("/stats"), getJSON("/facts")]);
+    const [st, facts] = REPLAY ? [replayStats(), MEM.facts.slice().sort((a, b) => b.hit_count - a.hit_count)]
+                               : await Promise.all([getJSON("/stats"), getJSON("/facts")]);
     $("mem-stats").innerHTML = statBox(fmtInt(st.facts_stored), "facts stored") +
       statBox(fmtInt(st.searches_saved), "searches saved") + statBox(fmtInt(st.tokens_saved), "tokens saved");
     $("facts").innerHTML = facts.length ? facts.map((f) => {
@@ -263,7 +266,8 @@ async function loadMemory() {
 }
 $("reset").addEventListener("click", async () => {
   if (!confirm("Clear every fact in Canon's memory?")) return;
-  try { await getJSON("/memory/reset", { method: "POST" }); } catch { showError("Couldn't reset memory. Try again."); }
+  if (REPLAY) MEM.facts = [];
+  else try { await getJSON("/memory/reset", { method: "POST" }); } catch { showError("Couldn't reset memory. Try again."); }
   loadMemory();
 });
 
@@ -397,6 +401,73 @@ async function fallbackPost(q, compare) {
   done();
 }
 
+/* ---------------- replay mode (static hosting, e.g. GitHub Pages) ---------------- */
+const REPO_URL = "https://github.com/Aparna1098/canon";
+let REPLAY = null;
+const MEM = { facts: [] };
+const qkey = (q) => q.toLowerCase().replace(/[^a-z0-9.]+/g, " ").trim();
+const EXPIRY_DAYS = { code: 1, medical: 30, local: 7, general: 7 };
+function expiresFor(cat) {
+  const now = new Date();
+  if (cat === "finance") { const m = Math.floor(now.getUTCMonth() / 3) * 3 + 3; return new Date(Date.UTC(now.getUTCFullYear(), m, 1) - 1000).toISOString(); }
+  return new Date(now.getTime() + (EXPIRY_DAYS[cat] || 7) * 864e5).toISOString();
+}
+function replayStats() {
+  return { facts_stored: MEM.facts.length, searches_saved: MEM.facts.reduce((a, f) => a + f.calls_saved, 0),
+           tokens_saved: MEM.facts.reduce((a, f) => a + f.tokens_saved, 0) };
+}
+function rememberReplay(r) {
+  if (r.from_memory) {
+    const f = MEM.facts.find((x) => x.answer === r.answer);
+    if (f) { f.hit_count += 1; f.calls_saved += f.calls_used; f.tokens_saved += r.tokens_saved || 0; }
+  } else if (r.verified && !MEM.facts.some((x) => x.answer === r.answer)) {
+    MEM.facts.push({ question: r.question, answer: r.answer, source_url: r.url, verified_at: new Date().toISOString(),
+                     expires_at: expiresFor(r.category), hit_count: 0, calls_used: r.calls_used, calls_saved: 0, tokens_saved: 0 });
+  }
+}
+async function detectMode() {
+  // Static hosts (GitHub Pages, file://, ?replay) never have the API: skip the probe so it can't log a 404.
+  const staticHost = /\.github\.io$/.test(location.hostname) || location.protocol === "file:" ||
+                     new URLSearchParams(location.search).has("replay");
+  if (!staticHost) {
+    try {
+      const r = await fetch("/stats", { cache: "no-store" });
+      if (r.ok && (r.headers.get("content-type") || "").includes("json")) return;
+    } catch { /* no backend: fall through to replay */ }
+  }
+  try {
+    const r = await fetch("replay.json", { cache: "no-store" });
+    if (r.ok) REPLAY = await r.json();
+  } catch { /* neither live nor replay: asking shows an error */ }
+  if (REPLAY) {
+    const b = $("replay-banner");
+    b.innerHTML = `<span class="text-emerald-300 font-semibold">Hosted demo.</span> The example questions replay real Canon runs recorded ${esc(REPLAY.recorded_at)}, with their real timing. ` +
+      `For live answers to any question, <a class="text-emerald-300 hover:underline" href="${REPO_URL}#run" target="_blank" rel="noopener">run Canon locally</a>.`;
+    b.classList.remove("hidden");
+  }
+}
+const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+async function replay(q, compare) {
+  const run = REPLAY.runs.find((r) => qkey(r.question) === qkey(q));
+  if (!run) {
+    finishSteps("bad"); $("result").innerHTML = "";
+    showError("This hosted demo can only replay the example questions. Pick one of the chips above, or run Canon locally for live answers to any question.");
+    done(); return;
+  }
+  const evs = run.events.filter((e) => compare || e.event !== "web_only");
+  const needWeb = compare && evs.some((e) => e.event === "web_only");
+  let last = 0, gotResult = false, gotWeb = !needWeb;
+  for (const e of evs) {
+    await wait(Math.min(e.t - last, 2500));  // real timing, long waits capped
+    last = e.t;
+    if (e.event === "step") addStep(e.data.label, e.data.kind === "verify" && /not found/i.test(e.data.label) ? "warn" : "active");
+    else if (e.event === "web_only") { state.web = e.data; gotWeb = true; render(); }
+    else if (e.event === "result") { onResult(e.data); rememberReplay(e.data); gotResult = true; }
+    if (gotResult && gotWeb) break;
+  }
+  done();
+}
+
 function ask() {
   const q = $("q").value.trim();
   if (!q || busy) return;
@@ -406,6 +477,7 @@ function ask() {
   state = { compare, result: null, web: null };
   resetSteps(); render();
   $("run").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (REPLAY) { replay(q, compare); return; }
 
   let gotAny = false, finished = false;
   try {
@@ -432,8 +504,7 @@ function ask() {
 }
 $("ask-form").addEventListener("submit", (e) => { e.preventDefault(); ask(); });
 
-loadEval();
-loadMemory();
+detectMode().then(() => { loadEval(); loadMemory(); });
 </script>
 </body>
 </html>
