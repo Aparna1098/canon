@@ -1,178 +1,99 @@
-# search-hack: quorum
+# Canon
 
-**quorum** answers factual questions by sending each one to the right specialist source, then checking the answer
-against the open web. It is built on the [Telem](https://telem.ai) multi-provider search SDK.
+**Telem finds the sources. Canon keeps the facts.**
 
-By default Telem fans a query out to 7 providers. quorum does three things differently:
+Canon is a shared memory of verified facts for AI agents, built on [Telem](https://telem.ai).
+Agents ask Canon a factual question. Canon answers from the official source with an exact quote that it has checked
+against the document, then remembers the fact so the next agent pays 0 searches for it.
 
-1. **Classify the question.** It labels each question as `finance`, `medical`, `local`, `code` or `general`.
-2. **Use the authoritative source.** Finance questions go to SEC EDGAR, medical ones to PubMed, local ones to
-   Google Maps, and code questions to the PyPI or npm registry (plus GitHub releases). quorum fetches the matching
-   document and pulls the fact out of it.
-3. **Verify.** In parallel it runs a web check with Tavily. When the official source and the web disagree, the
-   official source wins and the web value is shown struck through. General questions are settled by a vote across
-   several search engines.
-
-Each answer reports how many provider calls it made, compared with Telem's default of 7.
+## How it works
 
 ```
-question ─▶ classifier.py ─┬─ finance │ medical │ local ─▶ keyword query ─▶ specialist search ─▶ fetch doc ─▶ extract fact ─┐
-                           │                       └──────▶ tavily search (original question) ─▶ extract claim ──────────────┴─▶ reconcile
-                           │                                                                                                   (official wins)
-                           ├─ code ─▶ package name ─▶ PyPI JSON / npm dist-tags (+ GitHub release) ─┬─▶ compare versions
-                           │             └──────────▶ tavily search ─▶ extract version ─────────────┘   (official wins)
-                           └─ general ─▶ exa + tavily ─▶ extract & cluster claims ─▶ agree? ── yes ─▶ answer
-                                                                                       └─ no ─▶ + brave + parallel ─▶ engine quorum
+question
+  │
+  ├─▶ 1. check memory ── hit (cosine > 0.85, same entity, same years/quarters/versions, not expired)
+  │                       └─▶ return the stored fact: 0 calls, from_memory = true
+  │
+  ├─▶ 2. classify ─────── MiniLM embeddings → Claude Haiku if unsure → keyword rules
+  │
+  ├─▶ 3. route to the official source via Telem (search with providers_include, then fetch)
+  │        code     PyPI / npm registry JSON (+ GitHub release notes for "what changed")
+  │        finance  sec_edgar → fetch the 10-Q / 8-K / 10-K
+  │        medical  ncbi_pubmed → fetch the paper
+  │        local    fetchlayer_google_maps
+  │        general  exa + tavily; if they disagree, add brave + parallel and take the majority
+  │
+  ├─▶ 4. extract the fact + an exact quote (Claude Haiku; code needs no LLM: the JSON field is the quote)
+  │
+  ├─▶ 5. verify the quote is in the fetched document
+  │        (normalized for whitespace, case and 28,046 vs 28046; one retry, else "unverified")
+  │
+  ├─▶ 6. save to memory (verified answers only)
+  │        expiry: code 1 day · finance until next quarter end · medical 30 days · local and general 7 days
+  │        facts with 3+ hits get a Telem monitor on their source domain
+  │
+  └─▶ 7. return {answer, quote, source, url, date, verified, status, calls_used vs 7, tokens_saved, …}
 ```
 
-## Setup
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-cp .env.example .env   # add TELEM_API_KEY and ANTHROPIC_API_KEY (TAVILY_API_KEY for search.py)
-```
+Finance and medical answers are also cross-checked against Tavily in the background. The disagreement is only
+shown when the web contradicts the official source, and the official value wins. Memory stores no user identity:
+only the public fact, its source and anonymous counts.
 
 ## Run
 
 ```bash
-.venv/bin/streamlit run app.py                                         # web UI
-.venv/bin/python quorum.py "What was Tesla's revenue in Q3 2026?"      # CLI, several questions allowed, --json for raw output
-.venv/bin/python classifier.py                                         # classifier test table (10 queries)
-.venv/bin/python classifier.py "urgent care clinics in Raleigh"        # classify one query
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+cp .env.example .env                       # TELEM_API_KEY, ANTHROPIC_API_KEY
+
+.venv/bin/streamlit run app.py             # UI: answer card, live steps, web-only comparison, Memory tab
+.venv/bin/uvicorn api:app --port 8000      # API: POST /answer, GET /facts, GET /stats
+.venv/bin/python eval.py                   # eval → eval_results.md (moves facts.db aside first)
+.venv/bin/python -m canon.canon "Latest version of next.js"   # CLI
 ```
 
-While a question runs, the UI shows each step live ("Classifying… Searching SEC… Fetching filing… Cross-checking
-with Tavily…"). Afterwards it shows the category, the classifier's method and confidence, the route taken, provider
-and LLM call counts, and latency. It lists the sources with badges (**Official**, **Agreeing engines**, **Web**), puts a line through
-values that lost, and has a full call log.
+```bash
+curl -s localhost:8000/answer -H 'content-type: application/json' -d '{"question":"Latest version of pytorch"}'
+```
 
-| env var | default | purpose |
-|---|---|---|
-| `QUORUM_MODEL` | `claude-opus-5-5` | LLM for parameter extraction, fact/claim extraction and reconciliation |
-| `QUORUM_EFFORT` | `low` | effort level for those calls |
-
-## How it works
-
-### Classifier (`classifier.py`)
-The classifier tries three methods in order, stopping at the first that gives a confident answer:
-1. **Embeddings.** It embeds the question with `all-MiniLM-L6-v2` (local, CPU) and compares it with the average of
-   8 example questions per category. This takes a few milliseconds and costs nothing.
-2. **Claude Haiku.** If the top score is below 0.25, or less than 0.10 ahead of the runner-up, it asks
-   `claude-haiku-5-5`. A strict tool schema limits the answer to the 5 labels.
-3. **Keyword rules.** These run if there is no Anthropic key or the Haiku call fails.
-
-### Specialist path (`quorum.py`)
-| label | specialist | notes |
-|---|---|---|
-| finance | `sec_edgar` | needs a company. With no period, it assumes the latest fiscal year and uses the newest 10-K |
-| medical | `ncbi_pubmed` | |
-| local | `fetchlayer_google_maps` | |
-
-**Finance without a period.** `sec_edgar` ranks by relevance, so `Costco 10-K` returns filings from the early
-2000s. Telem's `published_after` doesn't help, because it only filters results after the search. quorum queries
-`<Company> 10-K <year>` (then the previous year), takes the newest primary 10-K, and rejects anything over 18 months
-old. A 10-K runs to hundreds of pages, so quorum fetches up to 1.5M characters and passes the extractor only the
-passages around the metric named in the question (revenue, net income and so on).
-
-An LLM turns the question into a keyword query. quorum takes the specialist result that names the entity, fetches
-the full document with Telem `fetch()` and extracts the value along with a verbatim supporting quote. The Tavily
-check runs at the same time, and a reconcile step decides whether the two values agree (rounding and unit
-differences count as agreement). If the specialist returns nothing or the document doesn't contain the answer,
-quorum falls back to the general path.
-
-### Code path
-1. **Find the package.** quorum looks for an install command (`pip install x`, `npm i x`), then a list of known
-   names (`pytorch` → `torch`, `next.js` → `next`). It asks Claude Haiku only if neither matches.
-2. **Read the registry with Telem `fetch()`.**
-   - PyPI: `/pypi/<pkg>/json` gives the version and `/pypi/<pkg>/<version>/json` the upload date.
-   - npm: `/-/package/<pkg>/dist-tags` gives the version. npm has no small endpoint with the publish time, so the
-     date comes from the GitHub release.
-3. **Read the GitHub release** when the question asks about breaking changes or what's new, and summarise it.
-4. **Cross-check with Tavily.** The web value is the version most Tavily results cite. If it differs from the
-   registry, the registry wins.
-
-### General path
-Exa and Tavily run first because Test B found they overlap least (about 7% of URLs). quorum extracts one claim per
-source and groups claims that are the same value (numbers within 0.5%). Each engine votes for the group holding most
-of its claims. If the two engines disagree, or either finds nothing, quorum adds Brave and Parallel and the majority
-of engines decides.
-
-On every path, a provider that returns no results is retried once before quorum gives up on it.
-
-## Experiments
-
-These are the scripts used to work out how Telem actually behaves, which shaped the design above.
-
-| script | what it checks | output |
-|---|---|---|
-| `search.py` | basic multi-provider search; passes when 3+ providers return results | stdout |
-| `routing_test.py` | which providers run per tier and query (no routing) | stdout |
-| `routing_test2.py` | `auto_routing` modes vs. the fixed fan-out, with reported cost | stdout |
-| `provider_catalog.py` | full provider catalog, grouped by category (free, no searches) | `providers.csv` |
-| `validate_router.py` | specialist access (A), web-engine overlap (B), sec_edgar + fetch + web end to end (C), answer-provider correctness and citation quality (D) | `validate_router_results.json` |
-
-`python validate_router.py C [engine]` reruns only Test C (output: `validate_router_results_C.json`), and
-`python validate_router.py D` reruns only Test D (output: `validate_router_results_D.json`).
-
-### Test D: answer providers
-Four questions were each sent to perplexity, linkup and tavily. Every URL a provider returned is labeled
-**PRIMARY** (sec.gov, nih.gov/PubMed, pypi.org, npmjs.com, docs.python.org, the official company or project site,
-peer-reviewed journals, FDA) or **SECONDARY** (news, blogs, forums, aggregators, video). Answers are checked
-against ground truth: the Tesla 8-K figure, the PyPI latest version (looked up live), and the known yes/yes for
-the other two.
-
-| question | provider | answer | correct? | % citations PRIMARY |
-|---|---|---|---|---|
-| Tesla revenue Q3 2026 | perplexity | (no answer) | n/a | 0% (0/5) |
-| | linkup | (no answer) | n/a | 0% (0/5) |
-| | tavily | ~$28.0B ($28.046B) | yes | 0% (0/5) |
-| Latest version of pytorch | perplexity | (no answer) | n/a | 80% (4/5) |
-| | linkup | (no answer) | n/a | 20% (1/5) |
-| | tavily | 2.15.0 | yes | 40% (2/5) |
-| Semaglutide and CV events in obesity | perplexity | (no answer) | n/a | 100% (5/5) |
-| | linkup | (no answer) | n/a | 0% (0/5) |
-| | tavily | Yes (SELECT trial) | yes | 20% (1/5) |
-| `datetime.utcnow` deprecated? | perplexity | (no answer) | n/a | 20% (1/5) |
-| | linkup | (no answer) | n/a | 0% (0/5) |
-| | tavily | Yes, since 3.12 | yes | 0% (0/5) |
-
-### Findings
-- **Telem's built-in routing doesn't save calls.** The server accepts only `auto_routing="accuracy"`, which ranks
-  providers but still runs all of them, and it ignores `max_routing_providers`. Routing has to happen on the
-  client, which is why quorum exists.
-- **Specialists work.** `sec_edgar`, `ncbi_pubmed`, `fetchlayer_reddit` and `fetchlayer_google_maps` all returned
-  relevant results for their own kind of query (Test A).
-- **Web engines overlap little.** URL overlap between pairs ranged from about 7% (exa/tavily) to 35% (exa/parallel),
-  so a second engine adds real independent evidence (Test B).
-- **`sec_edgar` needs keywords and returns only pointers to filings.** Given a plain-English question, it returned
-  unrelated filings. Given `Tesla revenue Q3 2026 10-Q`, it found Tesla's 8-K exhibit. Either way it returns links,
-  not figures, so quorum fetches the document itself. Tavily alone returned the correct $28.05B, but also the
-  analyst estimate ($28.17B) and an unrelated older figure. That mix is why the web value is checked against the
-  official one rather than trusted (Test C).
-- **Telem `fetch()` can serve stale copies.** Fetching npm's `/next/latest` returned 16.3.4 (from 2026-08-31),
-  even with `no_cache=True`, when the real latest was 16.4.6 (2026-11-09). npm's `dist-tags` endpoint came back
-  current, and so did PyPI for torch, langchain and pydantic.
-- **The web is often stale on versions.** For torch, langchain and pydantic, Tavily's top results named old or
-  wrong versions (for example LangChain 1.7.7, which is another package from the same repo). This is why the
-  registry wins.
-- **Through Telem, only Tavily gives a direct answer.** Perplexity and Linkup return search results only: their raw
-  payload is just `results`, at every tier. Tavily answered all 4 questions correctly (Test D).
-- **Answers can be right while citing no primary source.** Tavily's sources were 0% primary on 3 of 4 questions,
-  including Tesla, where it cited CNBC and Yahoo rather than sec.gov. Its correct answers rest on secondary
-  reporting. That is why quorum fetches the official document instead of trusting an answer engine (Test D).
-- **Perplexity surfaces primary sources best.** It ranked 80–100% primary on pytorch and semaglutide (NEJM, PubMed,
-  PyPI, pytorch.org). No engine returned sec.gov for the Tesla question, so a finance specialist is still needed.
-  Linkup was almost entirely secondary (1 of 20 URLs) (Test D).
-- **Reported cost is a lower bound.** Only exa reports a dollar `usage.total`; the other providers report credits
-  or SKU counts.
-
-## Files
-
-| file | role |
+| path | role |
 |---|---|
-| `quorum.py` | router, specialist and general paths, reconciliation, CLI |
-| `classifier.py` | embedding → Haiku → rules question classifier |
-| `app.py` | Streamlit UI |
-| `search.py`, `routing_test*.py`, `provider_catalog.py`, `validate_router.py` | experiments (above) |
-| `providers.csv`, `validate_router_results*.json` | experiment outputs |
+| `canon/canon.py` | pipeline: `answer(question, source=None)` |
+| `canon/classifier.py` | embedding → Haiku → rules classifier (fallback when top < 0.25 or margin < 0.10) |
+| `canon/sources.py` | one adapter per route, all through the Telem SDK |
+| `canon/verify.py` | Haiku extraction, quote verification, reconciliation |
+| `canon/memory.py` | SQLite fact memory (`facts.db`, gitignored), expiry, monitors |
+| `api.py`, `app.py`, `eval.py` | API, UI, eval (`questions.jsonl`) |
+| `experiments/` | the scripts that shaped the design ([README](experiments/README.md)) |
+
+## What the experiments found
+
+- **Telem fans out to all 7 default providers on every search.** Its `auto_routing` ranks providers but still
+  runs all of them. Routing has to happen in the client.
+- **Specialists exist but are manual.** `sec_edgar`, `ncbi_pubmed` and `fetchlayer_google_maps` are in the
+  catalog, but Telem never picks them on its own; you have to name them in `providers_include`.
+- **Web engines are fairly independent.** exa and tavily share only about 7% of URLs, so they make the first pair.
+  brave and parallel are the escalation pair.
+- **Answer engines are right but cite secondary sources.** Through Telem only tavily returns an answer. It was
+  right on 4/4 test questions, but on 3 of them none of its citations was a primary source.
+- **The web is stale on versions.** Web pages lag the registries by weeks, which is why the registry wins.
+
+## Eval
+
+| mode | accuracy | avg calls | avg tokens the agent must read | avg latency | memory hit rate |
+|---|---|---|---|---|---|
+| Web-only (tavily) | 93% (14/15) | 1.0 | 2,690 | 3.8s | — |
+| Telem default (all 7) | 87% (13/15) | 7.0 | 19,556 | 4.2s | — |
+| Canon, first pass | 100% (15/15) | 3.0 | 44 | 7.4s | 0% |
+| Canon, second pass (reworded) | 100% (15/15) | 0.5 | 44 | 0.4s | 80% |
+
+These are 15 questions with known answers (6 code, 3 finance, 2 medical, 2 local, 2 general), then the same 15
+reworded. Code ground truth is read live from PyPI and npm. "Tokens the agent must read" counts the result text
+for web-only and Telem default; for Canon it counts the answer, quote, URL and date it returns. Per-question
+results are in [eval_results.md](eval_results.md).
+
+- **Web-only goes stale.** Asked for the latest pydantic, tavily said v2.13.4 (May 2026). Canon said 2.14.3
+  (2026-11-05), straight from PyPI.
+- **Memory pays off on rewording.** 12 of the 15 reworded questions came back from memory with 0 calls in about
+  0.4s. The other 3 (langchain, react and fastapi rewordings) scored below the 0.85 similarity threshold, so they
+  re-ran the full pipeline and still answered correctly.

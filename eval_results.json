@@ -1,0 +1,757 @@
+{
+ "summary": {
+  "web": {
+   "accuracy": 0.9333333333333333,
+   "calls": 1,
+   "tokens": 2689.8,
+   "latency": 3.8379333333333334,
+   "hit_rate": null
+  },
+  "default": {
+   "accuracy": 0.8666666666666667,
+   "calls": 7,
+   "tokens": 19555.8,
+   "latency": 4.199933333333333,
+   "hit_rate": null
+  },
+  "canon1": {
+   "accuracy": 1.0,
+   "calls": 3,
+   "tokens": 43.733333333333334,
+   "latency": 7.3712,
+   "hit_rate": 0.0
+  },
+  "canon2": {
+   "accuracy": 1.0,
+   "calls": 0.4666666666666667,
+   "tokens": 43.733333333333334,
+   "latency": 0.41326666666666667,
+   "hit_rate": 0.8
+  }
+ },
+ "rows": [
+  {
+   "q": {
+    "id": 1,
+    "category": "code",
+    "question": "Latest version of pytorch",
+    "reworded": "What is the newest PyTorch release?",
+    "registry": "pypi:torch",
+    "truth": "2.15.0"
+   },
+   "web": {
+    "answer": "The most recent release listed is PyTorch\u202f2.15.0, announced on\u202f28\u202fOct\u202f2026.",
+    "calls": 1,
+    "tokens": 2596,
+    "latency_ms": 3100,
+    "urls": [
+     "https://github.com/pytorch/pytorch/wiki/PyTorch-Versions",
+     "https://pytorch.org",
+     "https://sourceforge.net/projects/pytorch.mirror/files"
+    ]
+   },
+   "default": {
+    "answer": "The sources give different recent version numbers: one source says the latest stable PyTorch release is\u202f2.15.0; another source lists the newest release as\u202fv2.13.0\u202fwith a release date of\u202f2026\u201107\u201108; and an older guide identifies\u202f1.13.1\u202f(as of January\u202f13\u202f2023) as the latest production\u2011ready version.",
+    "calls": 7,
+    "tokens": 16986,
+    "latency_ms": 3926
+   },
+   "canon1": {
+    "answer": "torch 2.15.0 (released 2026-10-28)",
+    "calls": 2,
+    "tokens": 24,
+    "latency_ms": 8878,
+    "from_memory": false,
+    "verified": true,
+    "route": "code: torch (pypi, via known-list) -> PyPI JSON",
+    "url": "https://pypi.org/pypi/torch/json"
+   },
+   "canon2": {
+    "answer": "torch 2.15.0 (released 2026-10-28)",
+    "calls": 0,
+    "tokens": 24,
+    "latency_ms": 16,
+    "from_memory": true,
+    "verified": true,
+    "route": "memory (fact #1, cosine 0.88)",
+    "url": "https://pypi.org/pypi/torch/json"
+   }
+  },
+  {
+   "q": {
+    "id": 2,
+    "category": "code",
+    "question": "Latest version of next.js",
+    "reworded": "What's the current next.js version?",
+    "registry": "npm:next",
+    "truth": "16.4.6"
+   },
+   "web": {
+    "answer": "The latest released version of Next.js is\u202f16.4.6.",
+    "calls": 1,
+    "tokens": 2399,
+    "latency_ms": 2990,
+    "urls": [
+     "https://releasebot.io/updates/vercel/next-js",
+     "https://next-changelog.vercel.app",
+     "https://en.wikipedia.org/wiki/Next.js"
+    ]
+   },
+   "default": {
+    "answer": "The most recent stable release of Next.js is\u202fv16.4.6 (published on npm\u202f5\u202fdays ago), while the newest canary build listed in the official changelog is\u202fv16.5.0\u2011canary.40 (dated\u202f11/3/2026).",
+    "calls": 7,
+    "tokens": 20592,
+    "latency_ms": 4814
+   },
+   "canon1": {
+    "answer": "next 16.4.6 (released 2026-11-09)",
+    "calls": 3,
+    "tokens": 28,
+    "latency_ms": 1152,
+    "from_memory": false,
+    "verified": true,
+    "route": "code: next (npm, via known-list) -> npm JSON + GitHub release",
+    "url": "https://registry.npmjs.org/-/package/next/dist-tags"
+   },
+   "canon2": {
+    "answer": "next 16.4.6 (released 2026-11-09)",
+    "calls": 0,
+    "tokens": 28,
+    "latency_ms": 10,
+    "from_memory": true,
+    "verified": true,
+    "route": "memory (fact #2, cosine 0.93)",
+    "url": "https://registry.npmjs.org/-/package/next/dist-tags"
+   }
+  },
+  {
+   "q": {
+    "id": 3,
+    "category": "code",
+    "question": "Latest pydantic version",
+    "reworded": "Which pydantic version is the most recent?",
+    "registry": "pypi:pydantic",
+    "truth": "2.14.3"
+   },
+   "web": {
+    "answer": "The most recent release shown is\u202fv2.13.4\u202f(2026\u201105\u201106).",
+    "calls": 1,
+    "tokens": 2158,
+    "latency_ms": 3435,
+    "urls": [
+     "https://pypi.org/project/pydantic",
+     "https://pydantic.dev/docs/validation/latest/get-started/changelog",
+     "https://pydantic.dev/articles/pydantic-v2-12-release"
+    ]
+   },
+   "default": {
+    "answer": "The most recent stable release of pydantic is\u202fv2.13.4, published on\u202f2026\u201105\u201106.",
+    "calls": 7,
+    "tokens": 18026,
+    "latency_ms": 3501
+   },
+   "canon1": {
+    "answer": "pydantic 2.14.3 (released 2026-11-05)",
+    "calls": 2,
+    "tokens": 25,
+    "latency_ms": 1423,
+    "from_memory": false,
+    "verified": true,
+    "route": "code: pydantic (pypi, via known-list) -> PyPI JSON",
+    "url": "https://pypi.org/pypi/pydantic/json"
+   },
+   "canon2": {
+    "answer": "pydantic 2.14.3 (released 2026-11-05)",
+    "calls": 0,
+    "tokens": 25,
+    "latency_ms": 8,
+    "from_memory": true,
+    "verified": true,
+    "route": "memory (fact #3, cosine 0.87)",
+    "url": "https://pypi.org/pypi/pydantic/json"
+   }
+  },
+  {
+   "q": {
+    "id": 4,
+    "category": "code",
+    "question": "Latest version of langchain",
+    "reworded": "What is the newest langchain release?",
+    "registry": "pypi:langchain",
+    "truth": "1.5.0"
+   },
+   "web": {
+    "answer": "The most recent release of the Python\u202flangchain package is version\u202f1.5.0.",
+    "calls": 1,
+    "tokens": 2784,
+    "latency_ms": 4444,
+    "urls": [
+     "https://github.com/langchain-ai/langchain",
+     "https://en.wikipedia.org/wiki/LangChain",
+     "https://github.com/langchain-ai/langchain/releases"
+    ]
+   },
+   "default": {
+    "answer": "The Python\u202flangchain package\u2019s newest release is\u202f1.5.0 (published\u202fNov\u202f11\u202f2026), while the JavaScript/TypeScript\u202flangchain package shows version\u202f1.6.3 (last published\u202f2\u202fdays ago).",
+    "calls": 7,
+    "tokens": 18937,
+    "latency_ms": 5340
+   },
+   "canon1": {
+    "answer": "langchain 1.5.0 (released 2026-11-11)",
+    "calls": 2,
+    "tokens": 25,
+    "latency_ms": 1100,
+    "from_memory": false,
+    "verified": true,
+    "route": "code: langchain (pypi, via known-list) -> PyPI JSON",
+    "url": "https://pypi.org/pypi/langchain/json"
+   },
+   "canon2": {
+    "answer": "langchain 1.5.0 (released 2026-11-11)",
+    "calls": 2,
+    "tokens": 25,
+    "latency_ms": 2330,
+    "from_memory": false,
+    "verified": true,
+    "route": "code: langchain (pypi, via known-list) -> PyPI JSON",
+    "url": "https://pypi.org/pypi/langchain/json"
+   }
+  },
+  {
+   "q": {
+    "id": 5,
+    "category": "code",
+    "question": "Latest version of react",
+    "reworded": "What's the most recent react release?",
+    "registry": "npm:react",
+    "truth": "19.3.1"
+   },
+   "web": {
+    "answer": "The React documentation lists the latest major release as\u202f19.3, while the npm package page shows the most recent published tag as\u202f19.3.1.",
+    "calls": 1,
+    "tokens": 2502,
+    "latency_ms": 4087,
+    "urls": [
+     "https://dev.to/brilworks/react-latest-version-exploring-new-features-updates-23m1",
+     "https://react.dev/versions",
+     "https://react.dev/blog/2022/03/29/react-v18"
+    ]
+   },
+   "default": {
+    "answer": "The most recent React release is version\u202f19.3.1, which is listed as the latest tag on npm.",
+    "calls": 7,
+    "tokens": 14972,
+    "latency_ms": 2923
+   },
+   "canon1": {
+    "answer": "react 19.3.1 (released 2026-10-14)",
+    "calls": 3,
+    "tokens": 29,
+    "latency_ms": 2950,
+    "from_memory": false,
+    "verified": true,
+    "route": "code: react (npm, via known-list) -> npm JSON + GitHub release",
+    "url": "https://registry.npmjs.org/-/package/react/dist-tags"
+   },
+   "canon2": {
+    "answer": "react 19.3.1 (released 2026-10-14)",
+    "calls": 3,
+    "tokens": 29,
+    "latency_ms": 1079,
+    "from_memory": false,
+    "verified": true,
+    "route": "code: react (npm, via known-list) -> npm JSON + GitHub release",
+    "url": "https://registry.npmjs.org/-/package/react/dist-tags"
+   }
+  },
+  {
+   "q": {
+    "id": 6,
+    "category": "code",
+    "question": "Latest version of fastapi",
+    "reworded": "What is the current fastapi release?",
+    "registry": "pypi:fastapi",
+    "truth": "0.163.0"
+   },
+   "web": {
+    "answer": "According to the PyPI project page, the latest version is\u202f0.163.0; the FastAPI release\u2011notes page lists\u202f0.162.5 (2026\u201111\u201111) as the most recent entry, while Snyk reports the latest version as\u202f0.162.0.",
+    "calls": 1,
+    "tokens": 2255,
+    "latency_ms": 4242,
+    "urls": [
+     "https://fastapi.tiangolo.com/release-notes",
+     "https://security.snyk.io/package/pip/fastapi",
+     "https://getsafety.com/packages/pypi/fastapi"
+    ]
+   },
+   "default": {
+    "answer": "The most recent FastAPI release listed in the official release notes is version\u202f0.162.5, published on\u202f2026\u201111\u201111.",
+    "calls": 7,
+    "tokens": 16009,
+    "latency_ms": 5272
+   },
+   "canon1": {
+    "answer": "fastapi 0.163.0 (released 2026-11-14)",
+    "calls": 2,
+    "tokens": 25,
+    "latency_ms": 3148,
+    "from_memory": false,
+    "verified": true,
+    "route": "code: fastapi (pypi, via known-list) -> PyPI JSON",
+    "url": "https://pypi.org/pypi/fastapi/json"
+   },
+   "canon2": {
+    "answer": "fastapi 0.163.0 (released 2026-11-14)",
+    "calls": 2,
+    "tokens": 25,
+    "latency_ms": 2671,
+    "from_memory": false,
+    "verified": true,
+    "route": "code: fastapi (pypi, via known-list) -> PyPI JSON",
+    "url": "https://pypi.org/pypi/fastapi/json"
+   }
+  },
+  {
+   "q": {
+    "id": 7,
+    "category": "finance",
+    "question": "What was Tesla's revenue in Q3 2026?",
+    "reworded": "How much revenue did Tesla report for Q3 2026?",
+    "expect": [
+     "28[.,]0[45]",
+     "28,?046"
+    ]
+   },
+   "web": {
+    "answer": "Tesla reported revenue of roughly $28\u202fbillion in the third quarter of 2026, with the detailed figure given as $28.05\u202fbillion (about $28.0\u202fbillion to $28.046\u202fbillion across reports).",
+    "calls": 1,
+    "tokens": 3170,
+    "latency_ms": 3240,
+    "urls": [
+     "https://electrek.co/2026/10/21/tesla-tsla-q3-2026-financial-results",
+     "https://arstechnica.com/cars/2026/10/tesla-profits-drop-43-in-q3",
+     "https://www.youtube.com/watch?v=O7vv54TrGi8"
+    ]
+   },
+   "default": {
+    "answer": "Tesla reported revenue of\u202f$28.05\u202fbillion for the third quarter of\u202f2026.",
+    "calls": 7,
+    "tokens": 20569,
+    "latency_ms": 3641
+   },
+   "canon1": {
+    "answer": "$28.05 billion",
+    "calls": 3,
+    "tokens": 39,
+    "latency_ms": 8423,
+    "from_memory": false,
+    "verified": true,
+    "route": "specialist: sec_edgar -> fetch -> extract -> verify quote",
+    "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026066738/exhibit9914.htm"
+   },
+   "canon2": {
+    "answer": "$28.05 billion",
+    "calls": 0,
+    "tokens": 39,
+    "latency_ms": 15,
+    "from_memory": true,
+    "verified": true,
+    "route": "memory (fact #7, cosine 0.95)",
+    "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026066738/exhibit9914.htm"
+   }
+  },
+  {
+   "q": {
+    "id": 8,
+    "category": "finance",
+    "question": "What was Tesla's revenue in Q2 2026?",
+    "reworded": "Tesla total revenues Q2 2026?",
+    "expect": [
+     "28[.,]2[34]",
+     "28,?236"
+    ]
+   },
+   "web": {
+    "answer": "Tesla\u2019s revenue in Q2\u202f2026 was $28.24\u202fbillion.",
+    "calls": 1,
+    "tokens": 3830,
+    "latency_ms": 5716,
+    "urls": [
+     "https://www.techi.com/tesla-q2-2026-ai-capex-margin-squeeze",
+     "https://www.financialcontent.com/article/stockstory-2026-7-22-teslas-nasdaqtsla-q2-cy2026-beats-on-revenue",
+     "https://www.barchart.com/story/news/3414610/teslas-nasdaqtsla-q2-cy2026-beats-on-revenue"
+    ]
+   },
+   "default": {
+    "answer": "Tesla reported Q2\u202f2026 revenue of about $28.24\u202fbillion.",
+    "calls": 7,
+    "tokens": 18408,
+    "latency_ms": 3404
+   },
+   "canon1": {
+    "answer": "$28.24 billion",
+    "calls": 3,
+    "tokens": 40,
+    "latency_ms": 4833,
+    "from_memory": false,
+    "verified": true,
+    "route": "specialist: sec_edgar -> fetch -> extract -> verify quote",
+    "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026049213/exhibit991.htm"
+   },
+   "canon2": {
+    "answer": "$28.24 billion",
+    "calls": 0,
+    "tokens": 40,
+    "latency_ms": 8,
+    "from_memory": true,
+    "verified": true,
+    "route": "memory (fact #8, cosine 0.92)",
+    "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026049213/exhibit991.htm"
+   }
+  },
+  {
+   "q": {
+    "id": 9,
+    "category": "finance",
+    "question": "What was Tesla's revenue in Q1 2026?",
+    "reworded": "How much did Tesla make in revenue in Q1 2026?",
+    "expect": [
+     "22[.,]3[89]",
+     "22,?387"
+    ]
+   },
+   "web": {
+    "answer": "Tesla reported Q1\u202f2026 revenue of roughly $22.39\u202fbillion.",
+    "calls": 1,
+    "tokens": 2029,
+    "latency_ms": 2806,
+    "urls": [
+     "https://qz.com/tesla-q1-2026-earnings-profit-deliveries-inventory-042226",
+     "https://www.linkedin.com/pulse/tesla-q1-2026-earnings-profit-structure-shifts-ai-software-jh0lc",
+     "https://www.teslarati.com/tesla-tsla-q1-2026-earnings-results"
+    ]
+   },
+   "default": {
+    "answer": "Tesla reported $22.39\u202fbillion in revenue for Q1\u202f2026.",
+    "calls": 7,
+    "tokens": 20502,
+    "latency_ms": 4862
+   },
+   "canon1": {
+    "answer": "$22.387 billion (Total revenues, Q1 2026, $22,387 million)",
+    "calls": 3,
+    "tokens": 51,
+    "latency_ms": 9061,
+    "from_memory": false,
+    "verified": true,
+    "route": "specialist: sec_edgar -> fetch -> extract -> verify quote",
+    "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026026551/exhibit991.htm"
+   },
+   "canon2": {
+    "answer": "$22.387 billion (Total revenues, Q1 2026, $22,387 million)",
+    "calls": 0,
+    "tokens": 51,
+    "latency_ms": 8,
+    "from_memory": true,
+    "verified": true,
+    "route": "memory (fact #9, cosine 0.96)",
+    "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026026551/exhibit991.htm"
+   }
+  },
+  {
+   "q": {
+    "id": 10,
+    "category": "medical",
+    "question": "Does semaglutide reduce cardiovascular events in obesity?",
+    "reworded": "Does semaglutide lower the risk of cardiovascular events in people with obesity?",
+    "expect": [
+     "\\byes\\b",
+     "reduc",
+     "lower"
+    ]
+   },
+   "web": {
+    "answer": "Yes. In patients with overweight or obesity (BMI\u202f\u2265\u202f27\u202fkg/m\u00b2) and established cardiovascular disease but without diabetes, once\u2011weekly 2.4\u202fmg subcutaneous semaglutide lowered major adverse cardiovascular events by about 20\u202f% compared with placebo. The primary composite endpoint (cardiovascular death, non\u2011fatal myocardial infarction or non\u2011fatal stroke) occurred in 6.5\u202f% of semaglutide recipients versus 8.0\u202f% of placebo recipients, yielding a hazard ratio of\u202f0.80 (95\u202f%\u202fCI\u202f0.72\u20110.90,\u202fP\u202f<\u202f0.001). Corresponding subgroup analyses reported hazard ratios around 0.79\u20110.84 for the overall outcome, with consistent reductions in cardiovascular death (HR\u202f0.85), all\u2011cause death (HR\u202f0.81), and non\u2011fatal MI (HR\u202f0.72). Mediation analyses suggest roughly one\u2011third of this benefit is explained by reductions in waist circumference, implying additional weight\u2011independent mechanisms.",
+    "calls": 1,
+    "tokens": 3040,
+    "latency_ms": 5289,
+    "urls": [
+     "https://www.acc.org/latest-in-cardiology/clinical-trials/2023/11/09/15/04/select",
+     "https://www.docwirenews.com/post/select-trial-semaglutide-reduces-cardiovascular-events-independent-of-weight-loss",
+     "https://pcmedproject.com/evidence-matters/rct-results-does-semaglutide-reduce-cardiovascular-events-for-patients-with-overweight-obesity-without-diabetes"
+    ]
+   },
+   "default": {
+    "answer": "Yes. In the SELECT trial of more than 17,000 adults with overweight or obesity and established cardiovascular disease but without diabetes, once\u2011weekly semaglutide reduced major adverse cardiovascular events by about 20\u202f% (a primary\u2011endpoint event occurred in 6.5\u202f% of the semaglutide group versus 8.0\u202f% of the placebo group, hazard ratio\u202f\u2248\u202f0.8). The benefit was seen across subgroups and was accompanied by lower rates of cardiovascular death (2.5\u202f% vs\u202f3.0\u202f%), all\u2011cause death (4.3\u202f% vs\u202f5.2\u202f%) and non\u2011fatal myocardial infarction (2.7\u202f% vs\u202f3.7\u202f%).",
+    "calls": 7,
+    "tokens": 26626,
+    "latency_ms": 4032
+   },
+   "canon1": {
+    "answer": "Yes, HR 0.80 (6.5% vs 8.0%) for the primary MACE composite",
+    "calls": 5,
+    "tokens": 44,
+    "latency_ms": 13653,
+    "from_memory": false,
+    "verified": true,
+    "route": "ncbi_pubmed -> fallback to general (fact not found in the specialist document)",
+    "url": "https://www.nejm.org/doi/full/10.1056/nejmoa2307563"
+   },
+   "canon2": {
+    "answer": "Yes, HR 0.80 (6.5% vs 8.0%) for the primary MACE composite",
+    "calls": 0,
+    "tokens": 44,
+    "latency_ms": 9,
+    "from_memory": true,
+    "verified": true,
+    "route": "memory (fact #10, cosine 0.97)",
+    "url": "https://www.nejm.org/doi/full/10.1056/nejmoa2307563"
+   }
+  },
+  {
+   "q": {
+    "id": 11,
+    "category": "medical",
+    "question": "Does dapagliflozin reduce hospitalization for heart failure?",
+    "reworded": "Does dapagliflozin lower heart failure hospitalizations?",
+    "expect": [
+     "\\byes\\b",
+     "reduc",
+     "lower"
+    ]
+   },
+   "web": {
+    "answer": "Yes. Across multiple trials dapagliflozin consistently lowered the rate of hospitalizations for heart failure. In the DECLARE\u2011TIMI\u202f58 trial, hospitalization for HF occurred in 4.9\u202f% of dapagliflozin\u2011treated patients versus 5.8\u202f% on placebo (hazard ratio\u202f0.83, 95\u202f%\u202fCI\u202f0.73\u20110.95,\u202fp=0.005). A secondary analysis of a large diabetes outcomes trial reported a reduction from 3.3\u202f% to 2.5\u202f% (P<0.005). In the DAPA\u2011HF heart\u2011failure trial, dapagliflozin produced 340 hospitalizations for HF compared with 469 in the placebo group, yielding a rate ratio of 0.75 (95\u202f%\u202fCI\u202f0.65\u20110.88,\u202fP<0.001). The FDA therefore approved dapagliflozin to reduce the risk of hospitalization for heart failure in eligible patients.",
+    "calls": 1,
+    "tokens": 3195,
+    "latency_ms": 4419,
+    "urls": [
+     "https://www.2minutemedicine.com/dapagliflozin-associated-with-reduced-hospitalization-rate-for-heart-failure",
+     "https://dig.pharmacy.uic.edu/faqs/2020-2/october-2020-faqs-2/what-is-the-role-of-dapagliflozin-for-treatment-of-heart-failure",
+     "https://www.nejm.org/doi/full/10.1056/NEJMoa1911303"
+    ]
+   },
+   "default": {
+    "answer": "Yes. Multiple trials report that dapagliflozin lowers the rate of hospitalisation for heart failure. In the DECLARE\u2011TIMI\u202f58 study, the composite of hospitalisation for HF or cardiovascular death was reduced (4.9% vs\u202f5.8%; hazard ratio\u202f0.83,\u202f95%\u202fCI\u202f0.73\u20130.95,\u202fp\u202f=\u202f0.005), driven largely by fewer HF admissions. The DAPA\u2011HF trial found fewer hospitalisations for HF with dapagliflozin (9.7% vs\u202f13.4%; HR\u202f0.70,\u202f95%\u202fCI\u202f0.59\u20130.83) and a lower total number of HF hospitalisations (340 vs\u202f469 events). A 2\u202fMinute\u202fMedicine analysis of a large diabetes trial also showed a significantly lower HF hospitalisation rate (2.5% vs\u202f3.3%). Wikipedia summarises that \u201cthe addition of dapagliflozin\u2026 can reduce the risk of \u2026 hospitalisation for heart failure.\u201d",
+    "calls": 7,
+    "tokens": 31834,
+    "latency_ms": 5184
+   },
+   "canon1": {
+    "answer": "Yes; composite of worsening heart failure (hospitalization or urgent IV-therapy visit) or CV death reduced, HR 0.74 (16.3% vs 21.2%)",
+    "calls": 7,
+    "tokens": 123,
+    "latency_ms": 30168,
+    "from_memory": false,
+    "verified": true,
+    "route": "ncbi_pubmed -> fallback to general (fact not found in the specialist document)",
+    "url": "https://www.nejm.org/doi/full/10.1056/NEJMoa1911303"
+   },
+   "canon2": {
+    "answer": "Yes; composite of worsening heart failure (hospitalization or urgent IV-therapy visit) or CV death reduced, HR 0.74 (16.3% vs 21.2%)",
+    "calls": 0,
+    "tokens": 123,
+    "latency_ms": 9,
+    "from_memory": true,
+    "verified": true,
+    "route": "memory (fact #11, cosine 0.98)",
+    "url": "https://www.nejm.org/doi/full/10.1056/NEJMoa1911303"
+   }
+  },
+  {
+   "q": {
+    "id": 12,
+    "category": "local",
+    "question": "What is the address of the Computer History Museum in Mountain View?",
+    "reworded": "Where is the Computer History Museum in Mountain View located?",
+    "expect": [
+     "1401"
+    ]
+   },
+   "web": {
+    "answer": "The Computer History Museum is located at\u202f1401\u202fN.\u202fShoreline\u202fBlvd.,\u202fMountain\u202fView,\u202fCA\u202f94043.",
+    "calls": 1,
+    "tokens": 1991,
+    "latency_ms": 4283,
+    "urls": [
+     "https://en.wikipedia.org/wiki/Computer_History_Museum",
+     "https://www.yelp.com/biz/computer-history-museum-mountain-view",
+     "https://computerhistory.org/directions"
+    ]
+   },
+   "default": {
+    "answer": "1401\u202fN.\u202fShoreline\u202fBlvd., Mountain View, CA\u202f94043.",
+    "calls": 7,
+    "tokens": 10887,
+    "latency_ms": 4275
+   },
+   "canon1": {
+    "answer": "1401 N Shoreline Blvd, Mountain View, CA 94043",
+    "calls": 3,
+    "tokens": 42,
+    "latency_ms": 9542,
+    "from_memory": false,
+    "verified": true,
+    "route": "specialist: fetchlayer_google_maps -> fetch -> extract -> verify quote",
+    "url": "https://www.google.com/maps/place/?q=place_id:ChIJm7NJkla3j4AR8vR-HWRxgOo"
+   },
+   "canon2": {
+    "answer": "1401 N Shoreline Blvd, Mountain View, CA 94043",
+    "calls": 0,
+    "tokens": 42,
+    "latency_ms": 8,
+    "from_memory": true,
+    "verified": true,
+    "route": "memory (fact #12, cosine 0.96)",
+    "url": "https://www.google.com/maps/place/?q=place_id:ChIJm7NJkla3j4AR8vR-HWRxgOo"
+   }
+  },
+  {
+   "q": {
+    "id": 13,
+    "category": "local",
+    "question": "Where is the Exploratorium in San Francisco?",
+    "reworded": "What is the location of the Exploratorium in San Francisco?",
+    "expect": [
+     "pier 15",
+     "pier 17"
+    ]
+   },
+   "web": {
+    "answer": "The Exploratorium is located at Pier\u202f15 on San\u202fFrancisco\u2019s Embarcadero, between the San\u202fFrancisco Ferry Building and Pier\u202f39.",
+    "calls": 1,
+    "tokens": 2496,
+    "latency_ms": 3236,
+    "urls": [
+     "https://en.wikipedia.org/wiki/Exploratorium",
+     "https://modelofarchitecture.org/sites/default/files/multiple-file/2017-12/Purpose%20Built_The%20Exploratorium.pdf",
+     "https://www.visitcalifornia.com/experience/exploratorium"
+    ]
+   },
+   "default": {
+    "answer": "The Exploratorium is situated on San\u202fFrancisco\u2019s Embarcadero waterfront at Pier\u202f15, between the Ferry Building and Pier\u202f39.",
+    "calls": 7,
+    "tokens": 19839,
+    "latency_ms": 3919
+   },
+   "canon1": {
+    "answer": "Pier 15 Embarcadero at Green St, San Francisco, CA 94111",
+    "calls": 3,
+    "tokens": 47,
+    "latency_ms": 7445,
+    "from_memory": false,
+    "verified": true,
+    "route": "specialist: fetchlayer_google_maps -> fetch -> extract -> verify quote",
+    "url": "https://www.google.com/maps/place/?q=place_id:ChIJk2vl5NSGhYARwPGvs_ubIws"
+   },
+   "canon2": {
+    "answer": "Pier 15 Embarcadero at Green St, San Francisco, CA 94111",
+    "calls": 0,
+    "tokens": 47,
+    "latency_ms": 11,
+    "from_memory": true,
+    "verified": true,
+    "route": "memory (fact #13, cosine 0.98)",
+    "url": "https://www.google.com/maps/place/?q=place_id:ChIJk2vl5NSGhYARwPGvs_ubIws"
+   }
+  },
+  {
+   "q": {
+    "id": 14,
+    "category": "general",
+    "question": "When was the ISS launched?",
+    "reworded": "When was the ISS first launched into orbit?",
+    "expect": [
+     "1998"
+    ]
+   },
+   "web": {
+    "answer": "The International Space Station\u2019s assembly began with the launch of the Russian control module\u202fZarya on\u202f20\u202fNovember\u202f1998.",
+    "calls": 1,
+    "tokens": 2702,
+    "latency_ms": 3449,
+    "urls": [
+     "https://en.wikipedia.org/wiki/International_Space_Station",
+     "https://www.britannica.com/topic/International-Space-Station",
+     "https://www.britannica.com/question/When-was-the-ISS-launched-into-space"
+    ]
+   },
+   "default": {
+    "answer": "The International Space Station\u2019s first element, the Russian Zarya control module, was launched on\u202f20\u202fNovember\u202f1998.",
+    "calls": 7,
+    "tokens": 18926,
+    "latency_ms": 2918
+   },
+   "canon1": {
+    "answer": "November 20, 1998",
+    "calls": 2,
+    "tokens": 63,
+    "latency_ms": 3043,
+    "from_memory": false,
+    "verified": true,
+    "route": "general: exa + tavily",
+    "url": "https://www.nasa.gov/history/20-years-ago-space-station-construction-begins/"
+   },
+   "canon2": {
+    "answer": "November 20, 1998",
+    "calls": 0,
+    "tokens": 63,
+    "latency_ms": 9,
+    "from_memory": true,
+    "verified": true,
+    "route": "memory (fact #14, cosine 0.91)",
+    "url": "https://www.nasa.gov/history/20-years-ago-space-station-construction-begins/"
+   }
+  },
+  {
+   "q": {
+    "id": 15,
+    "category": "general",
+    "question": "Who wrote the novel Middlemarch?",
+    "reworded": "Who is the author of the novel Middlemarch?",
+    "expect": [
+     "george eliot",
+     "mary ann evans"
+    ]
+   },
+   "web": {
+    "answer": "Middlemarch was written by George\u202fEliot (the pen name of Mary\u202fAnn\u202fEvans).",
+    "calls": 1,
+    "tokens": 3200,
+    "latency_ms": 2833,
+    "urls": [
+     "https://allegoryexplained.com/middlemarch",
+     "https://baike.baidu.com/en/item/Middlemarch/1526875",
+     "https://www.univ.ox.ac.uk/book/middlemarch"
+    ]
+   },
+   "default": {
+    "answer": "George Eliot (the pen name of Mary\u202fAnn\u202fEvans) wrote the novel *Middlemarch*.",
+    "calls": 7,
+    "tokens": 20224,
+    "latency_ms": 4988
+   },
+   "canon1": {
+    "answer": "George Eliot (Mary Ann Evans)",
+    "calls": 2,
+    "tokens": 51,
+    "latency_ms": 5749,
+    "from_memory": false,
+    "verified": true,
+    "route": "general: exa + tavily",
+    "url": "https://en.wikipedia.org/wiki/Middlemarch"
+   },
+   "canon2": {
+    "answer": "George Eliot (Mary Ann Evans)",
+    "calls": 0,
+    "tokens": 51,
+    "latency_ms": 8,
+    "from_memory": true,
+    "verified": true,
+    "route": "memory (fact #15, cosine 0.97)",
+    "url": "https://en.wikipedia.org/wiki/Middlemarch"
+   }
+  }
+ ]
+}

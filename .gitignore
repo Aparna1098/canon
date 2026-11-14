@@ -13,4 +13,4 @@ dist/
 .DS_Store
 
 # Canon memory (local data)
-facts.db
+facts.db*
