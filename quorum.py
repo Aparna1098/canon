@@ -46,6 +46,43 @@ GENERAL_FIRST = ["exa", "tavily"]        # least-overlapping pair from validate_
 GENERAL_ESCALATE = ["brave", "parallel"]
 SEARCH_FIELDS = ["url", "title", "summary", "excerpt", "publish_date", "rank"]
 DOC_CHARS = 60_000                       # document text passed to the extractor
+FILING_CHARS = 1_500_000                 # how much of an SEC filing to fetch before excerpting
+
+METRIC_TERMS = {
+    "revenue": ["total revenues", "total revenue", "net sales", "total net sales", "revenues"],
+    "sales": ["net sales", "total net sales", "total revenues"],
+    "income": ["net income", "income from operations", "operating income"],
+    "profit": ["net income", "gross profit", "operating income"],
+    "earnings": ["net income", "earnings per share", "diluted"],
+    "eps": ["earnings per share", "diluted"],
+    "margin": ["gross margin", "operating margin", "gross profit"],
+    "cash": ["cash flow", "net cash provided by operating activities", "free cash flow"],
+    "debt": ["long-term debt", "total debt", "borrowings"],
+}
+
+
+def relevant_excerpt(text, question, budget=DOC_CHARS, window=1200):
+    """For long filings: the opening plus windows around the question's metric terms, within budget."""
+    ql = question.lower()
+    terms = {t for k, v in METRIC_TERMS.items() if k in ql for t in v} or {"total revenues", "net sales", "net income"}
+    spans = []
+    for t in terms:
+        for m in re.finditer(re.escape(t), text, re.I):
+            spans.append((max(0, m.start() - window), min(len(text), m.end() + window)))
+    spans.sort()
+    merged = []
+    for s, e in spans:  # merge overlapping windows
+        if merged and s <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], e))
+        else:
+            merged.append((s, e))
+    parts, used = [text[:4000]], 4000
+    for s, e in merged:
+        if used + (e - s) > budget:
+            break
+        parts.append(text[s:e])
+        used += e - s
+    return "\n…\n".join(parts)
 
 
 # ---------------------------------------------------------------- LLM schemas
@@ -308,16 +345,46 @@ def _source_row(s, badge, value=None, struck=False):
 async def specialist_path(question, cls, tr):
     specialist = SPECIALISTS[cls.category]
 
+    assumed = getattr(cls, "period_assumed", False)
+
+    entity = (cls.entity or cls.keywords or "").lower()
+    tokens = [t for t in re.findall(r"[a-z0-9]+", entity) if len(t) > 2] or [entity]
+
+    def is_entity(h):
+        return any(t in (h["title"] + " " + h["text"]).lower() for t in tokens)
+
+    async def latest_10k():
+        """sec_edgar ranks by relevance, so '<Company> 10-K' returns 2000s filings; adding the year
+        finds the recent ones. Returns the newest primary 10-K, or None if none is under 18 months old."""
+        short = (cls.entity or "").split()[0] if cls.entity else cls.keywords
+        year = time.gmtime().tm_year
+        for y in (year, year - 1):
+            hits = [h for h in await search(f"{short} 10-K {y}", [specialist], 5, tr) if is_entity(h)]
+            annual = [h for h in hits if re.search(r"\b10-K\b[^·]*\((?:FORM )?10-K\)", h["text"])]
+            if annual:
+                newest = max(annual, key=lambda h: h["date"] or "")
+                cutoff = time.strftime("%Y-%m-%d", time.gmtime(time.time() - 548 * 86400))
+                return newest if (newest["date"] or "") >= cutoff else None
+        return None
+
     async def official():
-        hits = await search(cls.keywords, [specialist], 3, tr)
-        if not hits:
-            return None, None, None
-        entity = (cls.entity or cls.keywords or "").lower()
-        tokens = [t for t in re.findall(r"[a-z0-9]+", entity) if len(t) > 2] or [entity]
-        pick = next((h for h in hits if any(t in (h["title"] + " " + h["text"]).lower() for t in tokens)), hits[0])
-        content = await fetch(pick["url"], tr)
+        if assumed:
+            pick = await latest_10k()
+            if not pick:
+                return None, None, None
+        else:
+            hits = await search(cls.keywords, [specialist], 3, tr)
+            if not hits:
+                return None, None, None
+            pick = next((h for h in hits if is_entity(h)), hits[0])
+        big = cls.category == "finance"  # 10-K/10-Q text runs to hundreds of pages
+        content = await fetch(pick["url"], tr, max_chars=FILING_CHARS if big else DOC_CHARS)
+        if content and len(content) > DOC_CHARS:
+            content = relevant_excerpt(content, question)
         doc = dict(pick, text=content or pick["text"], fetched=bool(content))
-        fact = await extract_fact(question, doc, tr)
+        q = (f"{question} (No period was given: use the most recent fiscal year reported in this filing, "
+             f"and name that fiscal year in the value.)") if assumed else question
+        fact = await extract_fact(q, doc, tr)
         return pick, doc, fact
 
     async def web():
@@ -346,7 +413,8 @@ async def specialist_path(question, cls, tr):
     status = ("verified: matches official source" if verdict and verdict.agree
               else "conflict: official source wins" if verdict
               else "official source only (no web value found)")
-    return {"route": f"specialist: {specialist} -> fetch -> extract  ||  {WEB_CHECK}",
+    return {"route": f"specialist: {specialist}{' (latest 10-K, period assumed)' if assumed else ''}"
+                     f" -> fetch -> extract  ||  {WEB_CHECK}",
             "answer": fact.value, "status": status, "sources": rows,
             "explanation": verdict.explanation if verdict else ""}
 
@@ -631,6 +699,7 @@ class Route:
     entity: Optional[str] = None
     period: Optional[str] = None
     keywords: Optional[str] = None
+    period_assumed: bool = False
 
 
 async def answer(question):
@@ -642,9 +711,14 @@ async def answer(question):
     if route.category in SPECIALISTS:
         p = await extract_params(question, route.category, tr)
         route.entity, route.period, route.keywords = p.entity, p.period, p.keywords
-        if route.category == "finance" and not (p.entity and p.period):
-            note = f" (finance needs company + period; got {p.entity!r}, {p.period!r})"
+        if route.category == "finance" and not p.entity:
+            note = " (finance needs a company name)"
             route.category = "general"
+        elif route.category == "finance" and not p.period:
+            # no period: assume the latest fiscal year and look for the most recent 10-K
+            route.period, route.period_assumed = "latest fiscal year (assumed)", True
+            kw = re.sub(r"\b10-Q\b", "", p.keywords or p.entity).strip()
+            route.keywords = kw if "10-K" in kw else f"{kw} 10-K"
     if route.category in SPECIALISTS:
         out = await specialist_path(question, route, tr)
     elif route.category == "code":
