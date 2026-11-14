@@ -46,8 +46,8 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 cp .env.example .env                       # TELEM_API_KEY, ANTHROPIC_API_KEY
 
-.venv/bin/streamlit run app.py             # UI: answer card, live steps, web-only comparison, Memory tab
-.venv/bin/uvicorn api:app --port 8000      # API: POST /answer, GET /facts, GET /stats
+.venv/bin/uvicorn api:app --port 8000      # demo page at http://localhost:8000 + API
+.venv/bin/streamlit run app.py             # backup UI (Streamlit)
 .venv/bin/python eval.py                   # eval → eval_results.md (moves facts.db aside first)
 .venv/bin/python -m canon.canon "Latest version of next.js"   # CLI
 ```
@@ -63,7 +63,9 @@ curl -s localhost:8000/answer -H 'content-type: application/json' -d '{"question
 | `canon/sources.py` | one adapter per route, all through the Telem SDK |
 | `canon/verify.py` | Haiku extraction, quote verification, reconciliation |
 | `canon/memory.py` | SQLite fact memory (`facts.db`, gitignored), expiry, monitors |
-| `api.py`, `app.py`, `eval.py` | API, UI, eval (`questions.jsonl`) |
+| `api.py` | FastAPI: demo page `GET /`, `POST /answer`, `GET /answer/stream` (SSE), `GET /facts`, `GET /stats`, `GET /eval`, `POST /memory/reset` |
+| `web/index.html` | demo page (vanilla JS + Tailwind CDN, no build step) |
+| `app.py`, `eval.py` | backup Streamlit UI, eval (`questions.jsonl`) |
 | `experiments/` | the scripts that shaped the design ([README](experiments/README.md)) |
 
 ## What the experiments found

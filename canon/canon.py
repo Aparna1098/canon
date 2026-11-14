@@ -160,12 +160,15 @@ async def web_only(question, provider="tavily"):
     Shown for comparison only; not counted in Canon's totals."""
     t0 = time.perf_counter()
     r = await telem().search(question, providers_include=[provider], num_results=5,
-                             fields=["url", "title", "summary", "excerpt", "answer"])
+                             fields=["url", "title", "summary", "excerpt", "answer", "publish_date"])
     run = (r.by_provider or [None])[0]
     results = run.results if run else []
     text = " ".join(_text(x.summary) + " " + _text(x.excerpt) for x in results)
+    top = results[0] if results else None
     return {"provider": provider, "answer": (run.answer or "").strip() if run else "",
-            "urls": [x.url for x in results], "tokens_read": _tok(text), "calls": 1, "latency_ms": _ms(t0)}
+            "urls": [x.url for x in results], "url": top.url if top else None,
+            "title": top.title if top else None, "date": str(top.publish_date)[:10] if top and top.publish_date else None,
+            "tokens_read": _tok(text), "calls": 1, "latency_ms": _ms(t0)}
 
 
 async def telem_default(question):

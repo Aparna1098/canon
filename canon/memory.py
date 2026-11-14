@@ -146,3 +146,9 @@ def stats():
 def set_monitor(fact_id, monitor_id):
     with _lock, _db() as con:
         con.execute("UPDATE facts SET monitor_id = ? WHERE id = ?", (monitor_id, fact_id))
+
+
+def reset():
+    """Delete every stored fact. Returns how many were removed."""
+    with _lock, _db() as con:
+        return con.execute("DELETE FROM facts").rowcount
