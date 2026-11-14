@@ -1,11 +1,11 @@
-"""Streamlit UI for quorum.  Run:  .venv/bin/streamlit run app.py"""
+"""Streamlit UI for Canon.  Run:  .venv/bin/streamlit run app.py"""
 import asyncio
 import html
 import time
 
 import streamlit as st
 
-import quorum
+from canon import canon
 
 BADGE_COLORS = {"Official": "#1a7f37", "Agreeing engines": "#0969da", "Web": "#6e7781"}
 EXAMPLES = [
@@ -14,18 +14,18 @@ EXAMPLES = [
     "Does semaglutide reduce major adverse cardiovascular events in adults with obesity?",
 ]
 
-st.set_page_config(page_title="quorum", page_icon="🔎", layout="wide")
+st.set_page_config(page_title="Canon", page_icon="🔎", layout="wide")
 
 
 @st.cache_resource(show_spinner="Loading the classifier model (one time)...")
 def _warm_classifier():
-    import classifier
+    from canon import classifier
     classifier._load()  # embeds the 40 examples once per server process
     return True
 
 
 _warm_classifier()
-st.title("quorum")
+st.title("Canon")
 st.caption("Routes a question to a specialist source when one fits, and checks it against the web.")
 
 ex = st.selectbox("Example", ["(type your own)"] + EXAMPLES)
@@ -42,7 +42,7 @@ if st.button("Answer", type="primary", disabled=not question.strip()):
                 st.write(f"`{time.perf_counter() - t0:5.1f}s`  {msg}")
 
         try:
-            r = asyncio.run(quorum.answer(question.strip(), on_step=on_step))
+            r = asyncio.run(canon.answer(question.strip(), on_step=on_step))
         except Exception as e:  # surface API/key problems in the UI instead of a stack trace
             status.update(label="Failed", state="error")
             st.error(f"{type(e).__name__}: {e}")

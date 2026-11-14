@@ -66,7 +66,7 @@ async def call(c, query, providers, num_results, fields=FIELDS, tier="default"):
 
 
 def groups_from_csv():
-    with open("providers.csv") as f:
+    with open(__import__("os").path.join(__import__("os").path.dirname(__file__), "providers.csv")) as f:
         rows = list(csv.DictReader(f))
     g = {}
     for r in rows:

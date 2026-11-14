@@ -1,39 +1,25 @@
-"""quorum: a specialist router on top of Telem.
+"""One adapter per route, all searching and fetching through the Telem SDK.
 
-    question -> classify (1 LLM call)
-      finance | medical | local -> specialist path:
-          keyword query -> specialist search (3) -> pick the entity's result -> Telem fetch()
-          -> extract the fact from the document      } in parallel
-          tavily search with the original question   }
-          -> reconcile: agree = "verified"; disagree = official wins, web value struck through
-      general -> exa + tavily in parallel -> extract claims -> cluster -> compare
-          -> on conflict escalate to brave + parallel -> resolve by engine quorum
-
-Every Telem provider run and fetch counts as a provider call; the summary compares
-that with the 7 providers Telem runs by default.
-
-CLI:  .venv/bin/python quorum.py "What was Tesla's revenue in Q3 2026?" ["another question" ...] [--json]
+    code     -> PyPI / npm registry JSON (+ GitHub release notes for "what changed" questions)
+    finance  -> sec_edgar -> fetch filing -> extract   || tavily cross-check
+    medical  -> ncbi_pubmed -> fetch paper -> extract  || tavily cross-check
+    local    -> fetchlayer_google_maps -> extract      || tavily cross-check
+    general  -> exa + tavily; on disagreement escalate to brave + parallel and resolve by engine majority
 """
 from __future__ import annotations
 
 import asyncio
 import json
-import os
 import re
-import sys
 import time
-from dataclasses import dataclass, field
 from typing import Literal, Optional
 
-import anthropic
-from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from telem import AsyncTelem, TelemError
 
-load_dotenv()
+from .verify import (DOC_CHARS, Fact, Params, Tracker, _ms, _text, ask, extract_claims, extract_fact,
+                     reconcile)
 
-MODEL = os.environ.get("QUORUM_MODEL", "claude-opus-5-5")
-EFFORT = os.environ.get("QUORUM_EFFORT", "low")
 DEFAULT_FANOUT = 7  # providers Telem runs when providers_include is omitted
 
 SPECIALISTS = {
@@ -45,7 +31,6 @@ WEB_CHECK = "tavily"                     # parallel web check on the specialist 
 GENERAL_FIRST = ["exa", "tavily"]        # least-overlapping pair from validate_router.py Test B
 GENERAL_ESCALATE = ["brave", "parallel"]
 SEARCH_FIELDS = ["url", "title", "summary", "excerpt", "publish_date", "rank"]
-DOC_CHARS = 60_000                       # document text passed to the extractor
 FILING_CHARS = 1_500_000                 # how much of an SEC filing to fetch before excerpting
 
 METRIC_TERMS = {
@@ -85,97 +70,6 @@ def relevant_excerpt(text, question, budget=DOC_CHARS, window=1200):
     return "\n…\n".join(parts)
 
 
-# ---------------------------------------------------------------- LLM schemas
-class Params(BaseModel):
-    """Specialist query parameters, extracted only after classifier.py picks a specialist label."""
-    entity: Optional[str] = Field(description="Company (finance), drug/condition (medical), or what+place (local); null if absent")
-    period: Optional[str] = Field(description="Fiscal period for finance, e.g. 'Q3 2026' or 'FY2025'; null if absent or not finance")
-    keywords: str = Field(description="Keyword query for the specialist index (no question words)")
-
-
-class Fact(BaseModel):
-    found: bool
-    value: str = Field(description="The answer as a short human-readable value, e.g. '$28.05 billion'")
-    normalized: str = Field(description="Canonical form for comparison: plain number in base units "
-                                        "with unit (e.g. '28046000000 USD'), ISO date, or lowercase text")
-    quote: str = Field(description="Verbatim snippet from the text that supports the value")
-    source_index: int = Field(description="Index of the source the value came from, or -1")
-
-
-class Claims(BaseModel):
-    claims: list[Fact]
-
-
-class Verdict(BaseModel):
-    agree: bool = Field(description="True if the web value states the same fact as the official value")
-    explanation: str
-
-
-# ---------------------------------------------------------------- tracking
-@dataclass
-class Tracker:
-    events: list = field(default_factory=list)
-
-    def add(self, kind, provider, ms, ok=True, note=""):
-        self.events.append({"kind": kind, "provider": provider, "ms": ms, "ok": ok, "note": note})
-
-    @property
-    def provider_calls(self):
-        return sum(1 for e in self.events if e["kind"] in ("search", "fetch"))
-
-    @property
-    def llm_calls(self):
-        # includes the classifier's Haiku fallback when it ran
-        return sum(1 for e in self.events if e["kind"] == "llm" or e["provider"] == "classifier:haiku")
-
-
-def _ms(t0):
-    return int((time.perf_counter() - t0) * 1000)
-
-
-def _text(v):
-    if v is None:
-        return ""
-    if isinstance(v, (list, tuple)):
-        return " ".join(_text(x) for x in v)
-    if isinstance(v, dict):
-        return " ".join(_text(x) for x in v.values())
-    return str(v)
-
-
-# ---------------------------------------------------------------- LLM
-_llm = None
-
-
-def llm():
-    global _llm
-    if _llm is None:
-        _llm = anthropic.AsyncAnthropic()
-    return _llm
-
-
-HAIKU = "claude-haiku-5-5"
-
-
-async def ask(schema, system, user, tr: Tracker, label, model=None):
-    model = model or MODEL
-    t0 = time.perf_counter()
-    common = dict(model=model, max_tokens=4000, output_config={"effort": EFFORT}, system=system,
-                  messages=[{"role": "user", "content": user}], output_format=schema)
-    if model.startswith("claude-haiku"):
-        resp = await llm().messages.parse(**common)  # no server-side fallback for Haiku
-    else:
-        resp = await llm().beta.messages.parse(
-            betas=["server-side-fallback-2026-07-01"],
-            fallbacks="default",  # re-run on a fallback model if a safety classifier declines
-            **common,
-        )
-    tr.add("llm", f"{model}:{label}", _ms(t0))
-    if resp.stop_reason == "refusal":
-        raise RuntimeError(f"LLM declined the {label} step")
-    return resp.parsed_output
-
-
 PARAM_HINTS = {
     "finance": "SEC EDGAR full-text search. keywords: '<Company> <metric> <period> <10-Q|10-K>'. "
                "Resolve relative periods (e.g. 'last quarter') only if the question makes them unambiguous.",
@@ -187,49 +81,6 @@ PARAM_HINTS = {
 async def extract_params(question, label, tr):
     system = ("Extract query parameters for a specialist search index. " + PARAM_HINTS[label])
     return await ask(Params, system, question, tr, "params")
-
-
-async def classify(question, tr):
-    """Label via classifier.py (embedding -> haiku -> rules), off the event loop."""
-    import classifier
-    c = await asyncio.to_thread(classifier.classify, question)
-    tr.add("classify", f"classifier:{c['method']}", c["latency_ms"])
-    return c
-
-
-def _sources_block(sources):
-    return "\n\n".join(
-        f"[{i}] {s['provider']} | {s['title']} | {s['date'] or 'n.d.'} | {s['url']}\n{s['text'][:3000]}"
-        for i, s in enumerate(sources)
-    )
-
-
-async def extract_fact(question, doc, tr):
-    system = ("Extract the single fact that answers the question from an official document. "
-              "Use only the document. If it does not contain the answer, set found=false. "
-              "Financial tables are often '$ in millions'; convert normalized values to base units.")
-    user = f"Question: {question}\n\nDocument ({doc['url']}):\n{doc['text'][:DOC_CHARS]}"
-    fact = await ask(Fact, system, user, tr, "extract-official")
-    fact.source_index = 0
-    return fact
-
-
-async def extract_claims(question, sources, tr):
-    system = ("For each numbered source, extract the value it gives as the answer to the question. "
-              "Return one claim per source that answers it (skip sources that do not); "
-              "source_index is the bracketed number. Use consistent units in 'normalized' across claims.")
-    user = f"Question: {question}\n\nSources:\n{_sources_block(sources)}"
-    out = await ask(Claims, system, user, tr, "extract-claims")
-    return [c for c in out.claims if c.found and 0 <= c.source_index < len(sources)]
-
-
-async def reconcile(question, official, web, tr):
-    system = ("Decide whether a web value states the same fact as an official value. "
-              "Treat rounding (e.g. $28.05B vs $28,046M) and unit differences as agreement; "
-              "a different number, date or entity is disagreement.")
-    user = (f"Question: {question}\nOfficial: {official.value} ({official.normalized})\n"
-            f"Web: {web.value} ({web.normalized})")
-    return await ask(Verdict, system, user, tr, "reconcile")
 
 
 # ---------------------------------------------------------------- Telem
@@ -482,7 +333,7 @@ async def identify_package(question, tr):
             pkg, eco = KNOWN_PACKAGES[alias]
             return pkg, eco, "known-list"
     g = await ask(PackageGuess, "Identify the PyPI or npm package the question is about.", question, tr,
-                  "package", model=HAIKU)
+                  "package")
     if g.package and g.ecosystem != "unknown":
         return g.package.lower(), g.ecosystem, "haiku"
     return None, None, None
@@ -699,7 +550,7 @@ async def general_path(question, tr, on_step=None):
     winner = clusters[win]
     n_eng = sum(1 for i in votes.values() if i == win)
     status = (f"agreed: {n_eng}/{len(votes)} engines" if agreed
-              else f"resolved by quorum: {n_eng}/{len(votes)} engines")
+              else f"resolved by majority: {n_eng}/{len(votes)} engines")
 
     rows, seen = [], set()
     for cl_i, cl in enumerate(clusters):
@@ -712,92 +563,3 @@ async def general_path(question, tr, on_step=None):
     rows.sort(key=lambda r: r["badge"] != "Agreeing engines")
     return {"route": route, "answer": winner["value"], "status": status, "sources": rows,
             "explanation": f"{len(clusters)} distinct value(s) across {len(claims)} claims"}
-
-
-@dataclass
-class Route:
-    category: str
-    entity: Optional[str] = None
-    period: Optional[str] = None
-    keywords: Optional[str] = None
-    period_assumed: bool = False
-
-
-async def answer(question, on_step=None):
-    """on_step(str) is called with a short progress message before each step."""
-    step = on_step or _noop
-    tr = Tracker()
-    t0 = time.perf_counter()
-    step("Classifying…")
-    c = await classify(question, tr)
-    step(f"Classified as {c['label']} via {c['method']} ({c['latency_ms']} ms)")
-    route = Route(c["label"])
-    note = ""
-    if route.category in SPECIALISTS:
-        step("Extracting query parameters…")
-        p = await extract_params(question, route.category, tr)
-        route.entity, route.period, route.keywords = p.entity, p.period, p.keywords
-        if route.category == "finance" and not p.entity:
-            note = " (finance needs a company name)"
-            route.category = "general"
-        elif route.category == "finance" and not p.period:
-            # no period: assume the latest fiscal year and look for the most recent 10-K
-            route.period, route.period_assumed = "latest fiscal year (assumed)", True
-            kw = re.sub(r"\b10-Q\b", "", p.keywords or p.entity).strip()
-            route.keywords = kw if "10-K" in kw else f"{kw} 10-K"
-    if route.category in SPECIALISTS:
-        out = await specialist_path(question, route, tr, on_step)
-    elif route.category == "code":
-        out = await code_path(question, tr, on_step)
-    else:
-        out = await general_path(question, tr, on_step)
-        out["route"] += note
-    step("Done")
-    out.update({
-        "question": question, "label": c["label"], "category": route.category,
-        "classifier": {k: c[k] for k in ("method", "confidence", "margin", "latency_ms", "embedding_label")},
-        "entity": route.entity, "period": route.period, "keywords": route.keywords,
-        "provider_calls": tr.provider_calls, "llm_calls": tr.llm_calls,
-        "default_calls": DEFAULT_FANOUT, "latency_ms": _ms(t0), "events": tr.events,
-    })
-    return out
-
-
-# ---------------------------------------------------------------- CLI
-def print_result(r):
-    print("=" * 100)
-    print(f"Q: {r['question']}")
-    k = r["classifier"]
-    print(f"label:    {r['label']} via {k['method']} ({k['latency_ms']} ms, conf {k['confidence']:.2f}, "
-          f"margin {k['margin']:.3f})  -> category: {r['category']}")
-    if r["entity"] or r["keywords"]:
-        print(f"params:   entity: {r['entity']}  period: {r['period']}  keywords: {r['keywords']!r}")
-    print(f"route:    {r['route']}")
-    print(f"ANSWER:   {r['answer']}   [{r['status']}]")
-    if r.get("explanation"):
-        print(f"          {r['explanation']}")
-    for s in r["sources"]:
-        val = f"~~{s['value']}~~" if s["struck"] else (s["value"] or "")
-        print(f"  [{s['badge']:16}] {s['provider']:24} {val:28} {s['date'] or '':12} {s['url'][:80]}")
-    calls = ", ".join(f"{e['provider']}({e['ms']}ms{'' if e['ok'] else ' FAIL'})"
-                      for e in r["events"] if e["kind"] in ("search", "fetch"))
-    print(f"calls:    {r['provider_calls']} provider calls vs {r['default_calls']} default  |  "
-          f"{r['llm_calls']} LLM calls  |  {r['latency_ms']} ms total")
-    print(f"          {calls}")
-
-
-async def _main(questions, as_json):
-    results = []
-    for q in questions:
-        results.append(await answer(q))
-        if not as_json:
-            print_result(results[-1])
-    if as_json:
-        print(json.dumps(results, indent=1, default=str))
-
-
-if __name__ == "__main__":
-    args = [a for a in sys.argv[1:] if a != "--json"]
-    if not args:
-        sys.exit(__doc__)
-    asyncio.run(_main(args, "--json" in sys.argv))
