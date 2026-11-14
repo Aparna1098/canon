@@ -117,19 +117,23 @@ def llm():
     return _llm
 
 
-async def ask(schema, system, user, tr: Tracker, label):
+HAIKU = "claude-haiku-5-5"
+
+
+async def ask(schema, system, user, tr: Tracker, label, model=None):
+    model = model or MODEL
     t0 = time.perf_counter()
-    resp = await llm().beta.messages.parse(
-        model=MODEL,
-        max_tokens=4000,
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",  # re-run on a fallback model if a safety classifier declines
-        output_config={"effort": EFFORT},
-        system=system,
-        messages=[{"role": "user", "content": user}],
-        output_format=schema,
-    )
-    tr.add("llm", f"{MODEL}:{label}", _ms(t0))
+    common = dict(model=model, max_tokens=4000, output_config={"effort": EFFORT}, system=system,
+                  messages=[{"role": "user", "content": user}], output_format=schema)
+    if model.startswith("claude-haiku"):
+        resp = await llm().messages.parse(**common)  # no server-side fallback for Haiku
+    else:
+        resp = await llm().beta.messages.parse(
+            betas=["server-side-fallback-2026-07-01"],
+            fallbacks="default",  # re-run on a fallback model if a safety classifier declines
+            **common,
+        )
+    tr.add("llm", f"{model}:{label}", _ms(t0))
     if resp.stop_reason == "refusal":
         raise RuntimeError(f"LLM declined the {label} step")
     return resp.parsed_output
@@ -225,11 +229,11 @@ async def search(query, providers, num_results, tr):
     return sources
 
 
-async def fetch(url, tr):
+async def fetch(url, tr, fmt="markdown", max_chars=DOC_CHARS, no_cache=False):
     t0 = time.perf_counter()
     try:
-        r = await telem().fetch([url], inline_content=True, content_format="markdown",
-                                inline_max_chars=DOC_CHARS)
+        r = await telem().fetch([url], inline_content=True, content_format=fmt,
+                                inline_max_chars=max_chars, no_cache=no_cache or None)
     except TelemError as e:
         tr.add("fetch", "fetch", _ms(t0), ok=False, note=str(e)[:120])
         return None
@@ -336,7 +340,231 @@ async def specialist_path(question, cls, tr):
             "explanation": verdict.explanation if verdict else ""}
 
 
-async def general_path(question, tr):
+# ---------------------------------------------------------------- code route
+# alias -> (registry package name, ecosystem). Bare "next" is left out: too common a word.
+KNOWN_PACKAGES = {
+    "pytorch": ("torch", "pypi"), "torch": ("torch", "pypi"), "langchain": ("langchain", "pypi"),
+    "pydantic": ("pydantic", "pypi"), "django": ("django", "pypi"), "fastapi": ("fastapi", "pypi"),
+    "flask": ("flask", "pypi"), "numpy": ("numpy", "pypi"), "pandas": ("pandas", "pypi"),
+    "requests": ("requests", "pypi"), "transformers": ("transformers", "pypi"),
+    "scikit-learn": ("scikit-learn", "pypi"), "sklearn": ("scikit-learn", "pypi"),
+    "tensorflow": ("tensorflow", "pypi"), "streamlit": ("streamlit", "pypi"), "polars": ("polars", "pypi"),
+    "sqlalchemy": ("sqlalchemy", "pypi"), "pytest": ("pytest", "pypi"),
+    "next.js": ("next", "npm"), "nextjs": ("next", "npm"), "react": ("react", "npm"), "vue": ("vue", "npm"),
+    "svelte": ("svelte", "npm"), "express": ("express", "npm"), "typescript": ("typescript", "npm"),
+    "vite": ("vite", "npm"), "angular": ("@angular/core", "npm"), "tailwind": ("tailwindcss", "npm"),
+    "tailwindcss": ("tailwindcss", "npm"), "eslint": ("eslint", "npm"), "webpack": ("webpack", "npm"),
+    "prisma": ("prisma", "npm"), "zod": ("zod", "npm"),
+}
+INSTALL_PATTERNS = [
+    (r"\bpip3? install\s+([A-Za-z0-9_.\-]+)", "pypi"),
+    (r"\b(?:npm (?:i|install|add)|yarn add|pnpm add)\s+(@?[\w.\-/]+)", "npm"),
+    (r"(?<![\w@])(@[\w\-]+/[\w.\-]+)", "npm"),
+]
+CHANGES_RE = re.compile(r"\b(breaking|what'?s new|changes?|changelog|release notes|migrat\w*|deprecat\w*|"
+                        r"new features?)\b", re.I)
+
+
+class PackageGuess(BaseModel):
+    package: Optional[str] = Field(description="Registry package name, e.g. 'torch' or 'next'; null if none")
+    ecosystem: Literal["pypi", "npm", "unknown"]
+
+
+class ReleaseNotes(BaseModel):
+    summary: str = Field(description="2-3 sentence answer to the question from the release notes")
+    breaking: list[str] = Field(description="Breaking changes or removals listed in the notes; empty if none")
+
+
+async def identify_package(question, tr):
+    """(package, ecosystem, method): install commands -> known list -> Haiku if still unclear."""
+    for pat, eco in INSTALL_PATTERNS:
+        m = re.search(pat, question, re.I)
+        if m:
+            return m.group(1).lower(), eco, "regex"
+    ql = question.lower()
+    for alias in sorted(KNOWN_PACKAGES, key=len, reverse=True):
+        if re.search(rf"(?<![\w.\-]){re.escape(alias)}(?![\w\-])", ql):
+            pkg, eco = KNOWN_PACKAGES[alias]
+            return pkg, eco, "known-list"
+    g = await ask(PackageGuess, "Identify the PyPI or npm package the question is about.", question, tr,
+                  "package", model=HAIKU)
+    if g.package and g.ecosystem != "unknown":
+        return g.package.lower(), g.ecosystem, "haiku"
+    return None, None, None
+
+
+def _json_text(t):
+    t = (t or "").strip()
+    if t.startswith("```"):  # some fetch providers wrap JSON in a code fence
+        t = t[t.find("{"):].rstrip("`").strip()
+    return t
+
+
+def _gh_repo(u):
+    m = re.search(r"github\.com[/:]([\w.\-]+)/([\w.\-]+?)(?:\.git)?(?:[/#?\s]|$)", u or "")
+    return f"{m.group(1)}/{m.group(2)}" if m else None
+
+
+async def pypi_latest(pkg, tr):
+    t = _json_text(await fetch(f"https://pypi.org/pypi/{pkg}/json", tr, fmt="text", max_chars=200_000, no_cache=True))
+    m = re.search(r'"version"\s*:\s*"([^"]+)"', t)  # info.version; the doc is truncated after info
+    if not m:
+        return None
+    ver = m.group(1)
+    candidates = []
+    pu = re.search(r'"project_urls"\s*:\s*(\{[^{}]*\})', t)
+    if pu:
+        try:
+            urls = json.loads(pu.group(1))
+            candidates += [v for k, v in urls.items() if re.search(r"source|repo|github|code", k, re.I)]
+            candidates += list(urls.values())
+        except json.JSONDecodeError:
+            pass
+    hp = re.search(r'"home_page"\s*:\s*"([^"]*)"', t)
+    if hp:
+        candidates.append(hp.group(1))
+    repo = next((r for r in map(_gh_repo, candidates) if r), None)
+    api = f"https://pypi.org/pypi/{pkg}/{ver}/json"
+    vt = _json_text(await fetch(api, tr, fmt="text", max_chars=400_000, no_cache=True))
+    times = re.findall(r'"upload_time_iso_8601"\s*:\s*"([^"]+)"', vt)
+    return {"registry": "PyPI", "version": ver, "date": min(times)[:10] if times else None, "repo": repo,
+            "url": f"https://pypi.org/project/{pkg}/{ver}/"}
+
+
+async def npm_latest(pkg, tr):
+    # Version from dist-tags: Telem fetch served a 2.5-month-stale copy of /<pkg>/latest
+    # (next 16.3.4 vs 16.4.6) even with no_cache, while dist-tags came back current.
+    t = _json_text(await fetch(f"https://registry.npmjs.org/-/package/{pkg}/dist-tags", tr, fmt="text",
+                               no_cache=True))
+    try:
+        ver = json.loads(t)["latest"]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return None
+    # The version's own document gives the repository. npm has no small endpoint with the publish
+    # time and the full document is too large to fetch whole, so the date comes from GitHub.
+    vt = _json_text(await fetch(f"https://registry.npmjs.org/{pkg}/{ver}", tr, fmt="text", max_chars=200_000))
+    try:
+        repo = _gh_repo(_text(json.loads(vt).get("repository")))
+    except json.JSONDecodeError:
+        repo = _gh_repo(vt)
+    return {"registry": "npm", "version": ver, "date": None, "repo": repo,
+            "url": f"https://www.npmjs.com/package/{pkg}/v/{ver}"}
+
+
+def _vkey(v):
+    """Sort key for version strings; pre-releases sort below their release."""
+    parts = re.findall(r"\d+", _v(v).split("-")[0].split("a")[0].split("b")[0].split("rc")[0])
+    pre = bool(re.search(r"(a|b|rc|alpha|beta|dev|canary|-)", _v(v)))
+    return tuple(int(p) for p in parts[:4]) + ((0,) if pre else (1,))
+
+
+def same_version(a, b):
+    """'2.15' == '2.15.0' == 'v2.15.0'; a pre-release never equals its final release."""
+    def parts(v):  # numeric parts without trailing zeros, plus the release/pre-release flag
+        *nums, final = _vkey(v)
+        while nums and nums[-1] == 0:
+            nums.pop()
+        return nums, final
+
+    (na, fa), (nb, fb) = parts(a), parts(b)
+    return bool(_vkey(a)[:-1]) and na == nb and fa == fb
+
+
+def best_web_claim(claims):
+    """The web's best answer: the most-cited version, ties broken by the highest version."""
+    if not claims:
+        return None
+    counts = {}
+    for c in claims:
+        counts.setdefault(_v(c.normalized) or _v(c.value), []).append(c)
+    key = max(counts, key=lambda k: (len(counts[k]), _vkey(k)))
+    return counts[key][0]
+
+
+async def github_release(repo, pkg, ver, tr):
+    from urllib.parse import quote
+    for tag in (f"v{ver}", ver, f"{pkg}=={ver}", f"{pkg}@{ver}"):
+        url = f"https://github.com/{repo}/releases/tag/{quote(tag, safe='')}"
+        t = await fetch(url, tr, max_chars=30_000)
+        if t and ver in t[:3000] and "page not found" not in t[:500].lower():
+            m = re.search(r"Published:\s*(\d{4}-\d\d-\d\d)", t) or re.search(r"\b(20\d\d-\d\d-\d\d)\b", t)
+            return {"url": url, "tag": tag, "text": t, "date": m.group(1) if m else None}
+    return None
+
+
+def _v(s):
+    return (s or "").strip().lower().lstrip("v")
+
+
+async def code_path(question, tr, on_step=None):
+    step = on_step or (lambda s: None)
+    step("Identifying package…")
+    pkg, eco, how = await identify_package(question, tr)
+    if not pkg:
+        out = await general_path(question, tr, on_step)
+        out["route"] += "  (code: no package identified)"
+        return out
+    wants_changes = bool(CHANGES_RE.search(question))
+
+    async def official():
+        step(f"Fetching {'PyPI' if eco == 'pypi' else 'npm'} registry…")
+        info = await (pypi_latest if eco == "pypi" else npm_latest)(pkg, tr)
+        rel = None
+        if info and info["repo"] and (wants_changes or not info["date"]):
+            step("Fetching GitHub release…")
+            rel = await github_release(info["repo"], pkg, info["version"], tr)
+            if rel and not info["date"]:
+                info["date"] = rel["date"]
+        notes = None
+        if rel and wants_changes:
+            notes = await ask(ReleaseNotes, "Answer the question using only these release notes.",
+                              f"Question: {question}\n\nRelease notes ({rel['url']}):\n{rel['text'][:DOC_CHARS]}",
+                              tr, "release-notes")
+        return info, rel, notes
+
+    async def web():
+        step("Cross-checking with Tavily…")
+        sources = await search(question, [WEB_CHECK], 3, tr)
+        if not sources:
+            return sources, []
+        claims = await extract_claims(f"What is the latest released version of the {pkg} package? "
+                                      f"(value = the version number only)", sources, tr)
+        return sources, claims
+
+    (info, rel, notes), (web_sources, web_claims) = await asyncio.gather(official(), web())
+    if not info:
+        out = await general_path(question, tr, on_step)
+        out["route"] += f"  (code: {eco} lookup for '{pkg}' failed)"
+        return out
+
+    rows = [{"badge": "Official", "provider": info["registry"], "title": f"{pkg} {info['version']} on {info['registry']}",
+             "url": info["url"], "date": info["date"], "value": info["version"], "struck": False}]
+    if rel:
+        rows.append({"badge": "Official", "provider": "GitHub release", "title": f"{info['repo']} {rel['tag']}",
+                     "url": rel["url"], "date": rel["date"], "value": "release notes", "struck": False})
+    web_claim = best_web_claim(web_claims)
+    agree = None
+    if web_claim:
+        ws = web_sources[web_claim.source_index]
+        agree = same_version(web_claim.normalized, info["version"]) or same_version(web_claim.value, info["version"])
+        rows.append(_source_row(ws, "Web", web_claim.value, struck=not agree))
+
+    answer = f"{pkg} {info['version']}" + (f" (released {info['date']})" if info["date"] else "")
+    if notes:
+        answer += f" — {notes.summary}"
+    status = ("verified: matches official source" if agree
+              else "conflict: official source wins" if agree is False
+              else "official source only (no web value found)")
+    route = f"code: {pkg} ({eco}, via {how}) -> {info['registry']}" + (" + GitHub release" if rel else "") + f"  ||  {WEB_CHECK}"
+    return {"route": route, "answer": answer, "status": status, "sources": rows,
+            "explanation": ("Breaking: " + "; ".join(notes.breaking)) if notes and notes.breaking else "",
+            "package": {"name": pkg, "ecosystem": eco, "method": how, "official": info["version"],
+                        "official_date": info["date"], "web": web_claim.value if web_claim else None,
+                        "web_url": web_sources[web_claim.source_index]["url"] if web_claim else None,
+                        "web_date": web_sources[web_claim.source_index]["date"] if web_claim else None}}
+
+
+async def general_path(question, tr, on_step=None):
     sources = await search(question, GENERAL_FIRST, 3, tr)
     claims = await extract_claims(question, sources, tr) if sources else []
     route = f"general: {' + '.join(GENERAL_FIRST)}"
@@ -408,10 +636,10 @@ async def answer(question):
             route.category = "general"
     if route.category in SPECIALISTS:
         out = await specialist_path(question, route, tr)
+    elif route.category == "code":
+        out = await code_path(question, tr)
     else:
         out = await general_path(question, tr)
-        if c["label"] == "code":
-            out["route"] += "  (no code specialist in Telem)"
         out["route"] += note
     out.update({
         "question": question, "label": c["label"], "category": route.category,
