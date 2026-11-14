@@ -1,6 +1,7 @@
 """Streamlit UI for quorum.  Run:  .venv/bin/streamlit run app.py"""
 import asyncio
 import html
+import time
 
 import streamlit as st
 
@@ -31,12 +32,23 @@ ex = st.selectbox("Example", ["(type your own)"] + EXAMPLES)
 question = st.text_input("Question", value="" if ex == "(type your own)" else ex)
 
 if st.button("Answer", type="primary", disabled=not question.strip()):
-    with st.spinner("Routing and searching..."):
+    with st.status("Classifying…", expanded=True) as status:
+        t0 = time.perf_counter()
+
+        def on_step(msg):
+            # runs on the same thread as asyncio.run, so writing to the status box is safe
+            status.update(label=msg)
+            if msg != "Done":
+                st.write(f"`{time.perf_counter() - t0:5.1f}s`  {msg}")
+
         try:
-            r = asyncio.run(quorum.answer(question.strip()))
+            r = asyncio.run(quorum.answer(question.strip(), on_step=on_step))
         except Exception as e:  # surface API/key problems in the UI instead of a stack trace
+            status.update(label="Failed", state="error")
             st.error(f"{type(e).__name__}: {e}")
             st.stop()
+        status.update(label=f"Done in {r['latency_ms'] / 1000:.1f}s — {r['route']}", state="complete",
+                      expanded=False)
 
     k = r["classifier"]
     c1, c2, c3, c4, c5 = st.columns(5)

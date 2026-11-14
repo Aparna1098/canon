@@ -342,8 +342,17 @@ def _source_row(s, badge, value=None, struck=False):
             "date": s["date"], "value": value, "struck": struck}
 
 
-async def specialist_path(question, cls, tr):
+SPECIALIST_LABELS = {"finance": ("SEC", "filing"), "medical": ("PubMed", "paper"), "local": ("Google Maps", "place")}
+
+
+def _noop(_):
+    pass
+
+
+async def specialist_path(question, cls, tr, on_step=None):
+    step = on_step or _noop
     specialist = SPECIALISTS[cls.category]
+    src_name, doc_name = SPECIALIST_LABELS[cls.category]
 
     assumed = getattr(cls, "period_assumed", False)
 
@@ -369,14 +378,17 @@ async def specialist_path(question, cls, tr):
 
     async def official():
         if assumed:
+            step(f"Searching {src_name} for the latest 10-K…")
             pick = await latest_10k()
             if not pick:
                 return None, None, None
         else:
+            step(f"Searching {src_name}…")
             hits = await search(cls.keywords, [specialist], 3, tr)
             if not hits:
                 return None, None, None
             pick = next((h for h in hits if is_entity(h)), hits[0])
+        step(f"Fetching {doc_name}…")
         big = cls.category == "finance"  # 10-K/10-Q text runs to hundreds of pages
         content = await fetch(pick["url"], tr, max_chars=FILING_CHARS if big else DOC_CHARS)
         if content and len(content) > DOC_CHARS:
@@ -384,10 +396,12 @@ async def specialist_path(question, cls, tr):
         doc = dict(pick, text=content or pick["text"], fetched=bool(content))
         q = (f"{question} (No period was given: use the most recent fiscal year reported in this filing, "
              f"and name that fiscal year in the value.)") if assumed else question
+        step(f"Extracting the fact from the {doc_name}…")
         fact = await extract_fact(q, doc, tr)
         return pick, doc, fact
 
     async def web():
+        step("Cross-checking with Tavily…")
         sources = await search(question, [WEB_CHECK], 3, tr)
         claims = await extract_claims(question, sources, tr) if sources else []
         return sources, claims
@@ -396,7 +410,8 @@ async def specialist_path(question, cls, tr):
 
     if not fact or not fact.found:
         why = "no specialist results" if not pick else "fact not found in the specialist document"
-        out = await general_path(question, tr)
+        step(f"{src_name}: {why} — falling back to web search…")
+        out = await general_path(question, tr, on_step)
         out["route"] = f"{specialist} -> fallback to general ({why})"
         return out
 
@@ -407,6 +422,7 @@ async def specialist_path(question, cls, tr):
     web_claim = web_claims[0] if web_claims else None
     verdict = None
     if web_claim:
+        step("Comparing official and web values…")
         verdict = await reconcile(question, fact, web_claim, tr)
         ws = web_sources[web_claim.source_index]
         rows.append(_source_row(ws, "Web", web_claim.value, struck=not verdict.agree))
@@ -576,7 +592,7 @@ def _v(s):
 
 
 async def code_path(question, tr, on_step=None):
-    step = on_step or (lambda s: None)
+    step = on_step or _noop
     step("Identifying package…")
     pkg, eco, how = await identify_package(question, tr)
     if not pkg:
@@ -596,6 +612,7 @@ async def code_path(question, tr, on_step=None):
                 info["date"] = rel["date"]
         notes = None
         if rel and wants_changes:
+            step("Reading release notes…")
             notes = await ask(ReleaseNotes, "Answer the question using only these release notes.",
                               f"Question: {question}\n\nRelease notes ({rel['url']}):\n{rel['text'][:DOC_CHARS]}",
                               tr, "release-notes")
@@ -644,7 +661,10 @@ async def code_path(question, tr, on_step=None):
 
 
 async def general_path(question, tr, on_step=None):
+    step = on_step or _noop
+    step(f"Searching {' + '.join(GENERAL_FIRST)}…")
     sources = await search(question, GENERAL_FIRST, 3, tr)
+    step("Extracting and comparing claims…")
     claims = await extract_claims(question, sources, tr) if sources else []
     route = f"general: {' + '.join(GENERAL_FIRST)}"
 
@@ -656,6 +676,7 @@ async def general_path(question, tr, on_step=None):
     # agreement = every first-round engine answered and all voted for the same cluster
     agreed = None not in votes.values() and len(set(votes.values())) == 1
     if not agreed:
+        step(f"Engines disagree — escalating to {' + '.join(GENERAL_ESCALATE)}…")
         more = await search(question, GENERAL_ESCALATE, 3, tr)
         offset = len(sources)
         more_claims = await extract_claims(question, more, tr) if more else []
@@ -702,13 +723,18 @@ class Route:
     period_assumed: bool = False
 
 
-async def answer(question):
+async def answer(question, on_step=None):
+    """on_step(str) is called with a short progress message before each step."""
+    step = on_step or _noop
     tr = Tracker()
     t0 = time.perf_counter()
+    step("Classifying…")
     c = await classify(question, tr)
+    step(f"Classified as {c['label']} via {c['method']} ({c['latency_ms']} ms)")
     route = Route(c["label"])
     note = ""
     if route.category in SPECIALISTS:
+        step("Extracting query parameters…")
         p = await extract_params(question, route.category, tr)
         route.entity, route.period, route.keywords = p.entity, p.period, p.keywords
         if route.category == "finance" and not p.entity:
@@ -720,12 +746,13 @@ async def answer(question):
             kw = re.sub(r"\b10-Q\b", "", p.keywords or p.entity).strip()
             route.keywords = kw if "10-K" in kw else f"{kw} 10-K"
     if route.category in SPECIALISTS:
-        out = await specialist_path(question, route, tr)
+        out = await specialist_path(question, route, tr, on_step)
     elif route.category == "code":
-        out = await code_path(question, tr)
+        out = await code_path(question, tr, on_step)
     else:
-        out = await general_path(question, tr)
+        out = await general_path(question, tr, on_step)
         out["route"] += note
+    step("Done")
     out.update({
         "question": question, "label": c["label"], "category": route.category,
         "classifier": {k: c[k] for k in ("method", "confidence", "margin", "latency_ms", "embedding_label")},
